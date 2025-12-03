@@ -1,0 +1,70 @@
+imports:
+  common: ../../common.yml
+types:
+  # Config
+  VmVulnerabilityExportConfig:
+    properties:
+      numAssets: integer
+      chunkSize: integer
+      since: optional<datetime>
+      lastFound: optional<datetime>
+      lastFixed: optional<datetime>
+      firstFound: optional<datetime>
+      indexedAt: optional<datetime>
+      state: list<common.State>
+      severity: optional<list<string>>
+      includeUnlicensed: boolean
+      tags: optional<list<string>>
+      maxWaitTime: integer
+      sleepTime: integer
+      timeout: integer
+      hideRawOutput: boolean
+  # Intermediate Structures
+  Vulnerability:
+    properties:
+      asset: optional<VulnerabilityAssetInfo>
+      vulnerability: optional<VulnerabilityInfo>
+  VulnerabilityAssetInfo:
+    properties:
+      hostname: optional<string>
+      fqdn: optional<string>
+      ipv4: optional<string>
+      ipv6: optional<string>
+      operating_system: optional<list<string>>
+      mac_address: optional<string>
+      device_type: optional<string>
+      port: optional<VulnerabilityPort>
+  VulnerabilityInfo:
+    properties:
+      name: string
+      cve: optional<list<string>>
+      description: string
+      severity: string
+      state: common.State
+      cvss3_base_score: optional<double>
+      vpr_score: optional<double>
+      exploit_available: optional<boolean>
+      patch_publication_date: optional<string>
+      solution: optional<string>
+  VulnerabilityPort:
+    properties:
+      port: optional<integer>
+      protocol: optional<string>
+      service: optional<string>
+  VulnerabilityList:
+    properties:
+      vulnerabilities: optional<list<Vulnerability>>
+  VulnerabilityDetails:
+    properties:
+      export_uuid: string
+      vulnerabilities: VulnerabilityList
+      raw: unknown
+  VulnerabilityExportResult:
+    properties:
+      result: optional<VulnerabilityDetails>
+  # Report
+  VmVulnerabilityExportReport:
+    properties:
+      result: VulnerabilityExportResult
+      errors: list<string>
+      config: VmVulnerabilityExportConfig

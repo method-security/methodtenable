@@ -1,0 +1,154 @@
+types:
+  ApiWasFindingsExportReport:
+    properties:
+      findings: optional<ApiWasFindingsExportResponse>
+      errors: optional<list<string>>
+  # /was/v1/export/vulns Structs
+  ApiWasFindingsExportRequest:
+    properties:
+      filters: optional<ApiWasFindingsExportFilters>
+      num_assets: optional<integer>
+  ApiWasFindingsExportFilters:
+    properties:
+      severity: optional<list<string>>
+      since: optional<string>
+      first_found: optional<string>
+      last_fixed: optional<string>
+      last_found: optional<string>
+  ApiWasFindingsExportResponse:
+    properties:
+      export_uuid: optional<string>
+      status: optional<string>
+      items: optional<list<WasFinding>>
+  # /was/v1/export/vulns/{export_uuid}/status Structs
+  ApiWasFindingsExportStatusRequest:
+    properties:
+      export_uuid: string
+  ApiWasFindingsExportStatusResponse:
+    properties:
+      status: string
+      chunks_available: optional<list<integer>>
+      chunks_finished: optional<list<integer>>
+  # /was/v1/export/vulns/{export_uuid}/chunks/{chunk_id} Structs
+  ApiWasFindingsExportChunkRequest:
+    properties:
+      export_uuid: string
+      chunk_id: integer
+  ApiWasFindingsExportChunkResponse:
+    properties:
+      findings: optional<list<WasFinding>>
+  WasFinding:
+    properties:
+      finding_id: optional<string>
+      vuln_id: optional<string>
+      scan_id: optional<string>
+      plugin_id: optional<integer>
+      created_at: optional<string>
+      uri: optional<string>
+      url: optional<string>
+      is_page: optional<boolean>
+      details: optional<WasFindingDetails>
+      attachments: optional<list<WasAttachment>>
+      severity: optional<string>
+      severity_id: optional<integer>
+      severity_default_id: optional<integer>
+      severity_modification_type: optional<string>
+      name: optional<string>
+      description: optional<string>
+      solution: optional<string>
+      synopsis: optional<string>
+      risk_factor: optional<string>
+      cve: optional<list<string>>
+      cvss_base_score: optional<double>
+      cvss3_base_score: optional<double>
+      state: optional<string>
+      first_found: optional<string>
+      last_found: optional<string>
+      indexed_at: optional<string>
+      asset: optional<WasFindingAsset>
+      scan: optional<WasFindingScan>
+      plugin: optional<WasFindingPlugin>
+      output: optional<string>
+      proof: optional<string>
+      payload: optional<string>
+      request: optional<string>
+      response: optional<string>
+  WasFindingDetails:
+    properties:
+      input_name: optional<string>
+      input_type: optional<string>
+      output: optional<string>
+      proof: optional<string>
+      payload: optional<string>
+      selector: optional<string>
+      selector_url: optional<string>
+      signature: optional<string>
+      request: optional<string>
+      response: optional<string>
+  WasAttachment:
+    properties:
+      attachment_id: optional<string>
+      created_at: optional<string>
+      attachment_name: optional<string>
+      md5: optional<string>
+      file_type: optional<string>
+      size: optional<integer>
+  WasFindingAsset:
+    properties:
+      uuid: optional<string>
+      hostname: optional<string>
+      fqdn: optional<string>
+      ipv4: optional<string>
+      ipv6: optional<string>
+      ipv4s: optional<list<string>>
+      url: optional<string>
+      device_type: optional<string>
+  WasFindingScan:
+    properties:
+      uuid: optional<string>
+      completed_at: optional<string>
+  WasFindingPlugin:
+    properties:
+      id: optional<integer>
+      name: optional<string>
+      description: optional<string>
+      solution: optional<string>
+      synopsis: optional<string>
+      risk_factor: optional<string>
+      original_risk_factor_num: optional<integer>
+      locale: optional<string>
+      type: optional<string>
+      intel_type: optional<string>
+      publication_date: optional<string>
+      modification_date: optional<string>
+      patch_publication_date: optional<string>
+      exploitability_ease: optional<string>
+      public_display: optional<integer>
+      policy: optional<list<unknown>>
+      cvss2_base_score: optional<double>
+      cvss2_temporal_vector: optional<unknown>
+      cvss2_vector: optional<unknown>
+      cvss3_base_score: optional<double>
+      cvss3_temporal_vector: optional<unknown>
+      cvss3_vector: optional<unknown>
+      cvss4_base_score: optional<double>
+      cvss4_vector: optional<unknown>
+      cvss4_threat_vector: optional<unknown>
+      epss_score: optional<double>
+      cve: optional<list<string>>
+      cwe: optional<list<string>>
+      bid: optional<list<string>>
+      wasc: optional<list<string>>
+      cpe: optional<list<string>>
+      see_also: optional<list<string>>
+      xrefs: optional<list<unknown>>
+      vpr: optional<unknown>
+      vpr_v2: optional<unknown>
+      in_the_news: optional<boolean>
+      exploited_by_malware: optional<boolean>
+      exploit_frameworks: optional<list<unknown>>
+      owasp_2010: optional<list<string>>
+      owasp_2013: optional<list<string>>
+      owasp_2017: optional<list<string>>
+      owasp_2021: optional<list<string>>
+      owasp_api_2019: optional<list<string>>

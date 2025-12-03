@@ -4,11 +4,17 @@
 package cmd
 
 import (
+	// Standard
 	"errors"
+	"os"
 	"strings"
 	"time"
 
+	// Generated
+	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
 	"github.com/Method-Security/methodtenable/internal/config"
+
+	// External
 	"github.com/Method-Security/pkg/signal"
 	"github.com/Method-Security/pkg/writer"
 	"github.com/palantir/pkg/datetime"
@@ -26,16 +32,17 @@ type MethodTenable struct {
 	RootFlags    config.RootFlags
 	RootCmd      *cobra.Command
 	VersionCmd   *cobra.Command
-	DNSCmd       *cobra.Command
-	SaasCmd      *cobra.Command
-	ShodanCmd    *cobra.Command
+	SecretConfig methodtenablefern.SecretConfig
 }
 
 // NewMethodTenable creates a new MethodTenable struct with the given version. It initializes the root command and all subcommands
 // for the CLI. We pass the version command in here from the main.go file, where we set the version string during the
 // build process.
 func NewMethodTenable(version string) *MethodTenable {
+	// Initialize the started at time
 	startedAt := datetime.DateTime(time.Now())
+
+	// Initialize the MethodTenable struct
 	methodTenable := MethodTenable{
 		Version: version,
 		RootFlags: config.RootFlags{
@@ -71,6 +78,15 @@ func (a *MethodTenable) InitRootCommand() {
 			}
 			a.OutputConfig = writer.NewOutputConfig(outputFilePointer, format)
 			cmd.SetContext(svc1log.WithLogger(cmd.Context(), config.InitializeLogging(cmd, &a.RootFlags)))
+
+			// Set the API keys from the environment variables
+			assetKey := os.Getenv("TENABLE_ACCESS_KEY")
+			assetSecret := os.Getenv("TENABLE_SECRET_KEY")
+			a.SecretConfig = methodtenablefern.SecretConfig{
+				AccessKey: &assetKey,
+				SecretKey: &assetSecret,
+			}
+
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, _ []string) error {
@@ -91,6 +107,9 @@ func (a *MethodTenable) InitRootCommand() {
 	a.RootCmd.PersistentFlags().BoolVarP(&a.RootFlags.Verbose, "verbose", "v", false, "Verbose output")
 	a.RootCmd.PersistentFlags().StringVarP(&outputFile, "output-file", "f", "", "Path to output file. If blank, will output to STDOUT")
 	a.RootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "signal", "Output format (signal, json, yaml). Default value is signal")
+	// All commands inherit these flags
+	a.RootCmd.PersistentFlags().String("access-key", "", "Tenable API Access Key (overrides env TENABLE_ACCESS_KEY)")
+	a.RootCmd.PersistentFlags().String("secret-key", "", "Tenable API Secret Key (overrides env TENABLE_SECRET_KEY)")
 
 	a.VersionCmd = &cobra.Command{
 		Use:   "version",
@@ -121,4 +140,12 @@ func validateOutputFormat(output string) (writer.Format, error) {
 		return writer.Format{}, errors.New("invalid output format. Valid formats are: json, yaml, signal")
 	}
 	return writer.NewFormat(format), nil
+}
+
+// GetTenableSecretConfig returns the secret configuration if properly configured
+func (a *MethodTenable) GetTenableSecretConfig() (*methodtenablefern.SecretConfig, error) {
+	if a.SecretConfig.AccessKey == nil || a.SecretConfig.SecretKey == nil {
+		return nil, errors.New("access key or secret key not configured")
+	}
+	return &a.SecretConfig, nil
 }

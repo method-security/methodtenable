@@ -1,0 +1,17 @@
+types:
+  SecretConfig:
+    properties:
+      accessKey: optional<string>
+      secretKey: optional<string>
+  Severity:
+    enum:
+      - CRITICAL
+      - HIGH
+      - MEDIUM
+      - LOW
+      - INFO
+  State:
+    enum:
+      - OPEN
+      - REOPENED
+      - FIXED

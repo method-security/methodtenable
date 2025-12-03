@@ -1,0 +1,52 @@
+imports:
+  common: ../../common.yml
+types:
+  # Config
+  WasFindingsExportConfig:
+    properties:
+      since: optional<datetime>
+      severity: optional<list<common.Severity>>
+      includeUnlicensed: boolean
+      numAssets: optional<integer>
+      firstFound: optional<datetime>
+      lastFixed: optional<datetime>
+      lastFound: optional<datetime>
+      maxWaitTime: integer
+      sleepTime: integer
+      timeout: integer
+      hideRawOutput: boolean
+  # Intermediate Structures
+  WasFinding:
+    properties:
+      name: string
+      description: string
+      severity: optional<common.Severity>
+      state: optional<common.State>
+      cve: optional<list<string>>
+      cpe: optional<list<string>>
+  WasAsset:
+    properties:
+      url: string
+      fqdn: optional<string>
+      ipv4: optional<string>
+  WasFindingInfo:
+    properties:
+      finding: WasFinding
+      asset: WasAsset
+  WasFindingList:
+    properties:
+      findings: optional<list<WasFindingInfo>>
+  WasFindingDetails:
+    properties:
+      export_uuid: string
+      findings: WasFindingList
+      raw: unknown
+  WasFindingsExportResult:
+    properties:
+      result: optional<WasFindingDetails>
+  # Report
+  WasFindingsExportReport:
+    properties:
+      result: WasFindingsExportResult
+      errors: list<string>
+      config: WasFindingsExportConfig
