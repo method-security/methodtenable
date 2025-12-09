@@ -1,10 +1,10 @@
 module github.com/Method-Security/methodtenable
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/Method-Security/pkg v0.0.6
-	github.com/palantir/pkg/datetime v1.2.0
+	github.com/palantir/pkg/datetime v1.3.0
 	github.com/palantir/witchcraft-go-logging v1.61.0
 	github.com/spf13/cobra v1.9.1
 )
