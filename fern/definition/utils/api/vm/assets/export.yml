@@ -1,4 +1,5 @@
 types:
+  # Report
   ApiVmAsssetExportReport:
     properties:
       export_uuid: optional<string>

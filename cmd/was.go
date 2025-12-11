@@ -9,10 +9,8 @@ import (
 
 	// Internal
 	wasfindings "github.com/Method-Security/methodtenable/internal/was/findings"
-
 	// External
 	cobra "github.com/spf13/cobra"
-
 	//Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
 	wasfern "github.com/Method-Security/methodtenable/generated/go/was/findings"
@@ -171,11 +169,8 @@ Data is returned in chunks and written locally as JSON.`,
 			config := getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets, since, firstFound, lastFixed, lastFound, severityEnum, hideRawOutput)
 
 			// Generate Report
-			report, err := wasfindings.WasFindingsExport(ctx, config, *secretConfig)
-			if err != nil {
-				a.OutputSignal.AddError(err)
-				return
-			}
+			report := wasfindings.ExportFindings(ctx, *secretConfig, config)
+
 			a.OutputSignal.Content = report
 		},
 	}
@@ -192,9 +187,13 @@ Data is returned in chunks and written locally as JSON.`,
 	findingsExportCmd.Flags().StringArray("severity", []string{}, "Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)")
 	findingsExportCmd.Flags().Bool("hide-raw-output", false, "Do not include raw output in the report")
 
-	// Add the commands to the hierarchy
+	// Add the findings export command to the findings command
 	findingsCmd.AddCommand(findingsExportCmd)
+
+	// Add the findings command to the hierarchy
 	wasCmd.AddCommand(findingsCmd)
+
+	// Add the was command to the root command
 	a.RootCmd.AddCommand(wasCmd)
 }
 

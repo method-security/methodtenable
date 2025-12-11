@@ -1,9 +1,11 @@
 types:
+  # Report
   ApiVmVulnerabilityExportReport:
     properties:
       export_uuid: optional<string>
       chunks: optional<list<ApiVmVulnerabilityExportChunkResponse>>
       errors: optional<list<string>>
+  # Note: Snake case is needed to match the API structure
   # /vulns/export Structs
   ApiVmVulnerabilityExportRequest:
     properties:

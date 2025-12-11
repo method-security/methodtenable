@@ -12,7 +12,7 @@ types:
       firstFound: optional<datetime>
       indexedAt: optional<datetime>
       state: list<common.State>
-      severity: optional<list<string>>
+      severity: optional<list<common.Severity>>
       includeUnlicensed: boolean
       tags: optional<list<string>>
       maxWaitTime: integer

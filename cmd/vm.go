@@ -237,7 +237,7 @@ returned in chunks and written locally as JSON.`,
 			config := getAssetExportConfig(chunkSize, createdAt, updatedAt, lastAssessed, deletedAt, terminatedAt, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
-			report := assets.ExportAssets(ctx, secretConfig, config)
+			report := assets.ExportAssets(ctx, *secretConfig, *config)
 			a.OutputSignal.Content = report
 		},
 	}
@@ -405,6 +405,15 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
+			severityEnum := []methodtenablefern.Severity{}
+			for _, severityStr := range severity {
+				severityType, err := methodtenablefern.NewSeverityFromString(strings.ToUpper(severityStr))
+				if err != nil {
+					a.OutputSignal.AddError(err)
+					return
+				}
+				severityEnum = append(severityEnum, severityType)
+			}
 			includeUnlicensed, err := cmd.Flags().GetBool("include-unlicensed")
 			if err != nil {
 				a.OutputSignal.AddError(err)
@@ -437,30 +446,27 @@ locally as JSON.`,
 			}
 
 			// Set configs
-			config := getVulnerabilityExportConfig(numAssets, since, lastFound, lastFixed, firstFound, indexedAt, stateEnum, severity, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getVulnerabilityExportConfig(numAssets, since, lastFound, lastFixed, firstFound, indexedAt, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
-			report := vulnerabilities.ExportVulnerabilities(ctx, secretConfig, config)
+			report := vulnerabilities.ExportVulnerabilities(ctx, *secretConfig, *config)
 			a.OutputSignal.Content = report
 		},
 	}
 
-	// Server-side filtering flags (sent to Tenable API for efficient filtering)
-	vulnExportCmd.Flags().Int("num-assets", 500, "Number of assets processed per chunk (recommended max 5000)")
+	vulnExportCmd.Flags().Int("num-assets", 500, "Specifies the number of assets used to chunk the vulnerabilities. The vulnerabilities export is split up by number of asset IDs in a chunk. (recommended max 5000, min of 50)")
 	vulnExportCmd.Flags().String("since", "", "Server-side filter: include vulns last_found or last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("last-found", "", "Server-side filter: only vulnerabilities with last_found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("last-fixed", "", "Server-side filter: only vulnerabilities with last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("first-found", "", "Server-side filter: only vulnerabilities first_found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("indexed-at", "", "Server-side filter: only vulnerabilities indexed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().StringArray("state", []string{}, "Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED)")
-	vulnExportCmd.Flags().StringArray("severity", []string{}, "Server-side filter: Severity filter (low, medium, high, critical)")
+	vulnExportCmd.Flags().StringArray("severity", []string{}, "Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL)")
 	vulnExportCmd.Flags().Bool("include-unlicensed", false, "Server-side filter: Include vulnerabilities on unlicensed assets")
 	vulnExportCmd.Flags().StringArray("tag", []string{}, "Server-side filter: Filter by asset tag in format Category:Value (repeatable)")
-
-	// Client-side configuration flags (control export behavior, not data filtering)
-	vulnExportCmd.Flags().Int("max-wait-time", 0, "Client-side config: Maximum wait time for export to complete in seconds")
-	vulnExportCmd.Flags().Int("timeout", 30, "Client-side config: Timeout for Tenable API requests in seconds")
-	vulnExportCmd.Flags().Int("sleep-time", 5, "Client-side config: Sleep time between Tenable API calls in seconds")
+	vulnExportCmd.Flags().Int("max-wait-time", 0, "Maximum wait time for export to complete in seconds")
+	vulnExportCmd.Flags().Int("timeout", 30, "Timeout for Tenable API requests in seconds")
+	vulnExportCmd.Flags().Int("sleep-time", 5, "Sleep time between Tenable API calls in seconds")
 	vulnExportCmd.Flags().Bool("hide-raw-output", false, "Do not include raw output in the report")
 
 	// Add export command to vulnerability command
@@ -514,9 +520,9 @@ func getAssetExportConfig(chunkSize int, createdAt time.Time, updatedAt time.Tim
 }
 
 // getVulnerabilityExportConfig returns a new VmVulnerabilityExportConfig struct with the given parameters
-func getVulnerabilityExportConfig(numAssets int, since time.Time, lastFound time.Time, lastFixed time.Time, firstFound time.Time, indexedAt time.Time, state []methodtenablefern.State, severity []string, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
+func getVulnerabilityExportConfig(numAssets int, since time.Time, lastFound time.Time, lastFixed time.Time, firstFound time.Time, indexedAt time.Time, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
 	config := &vulnfern.VmVulnerabilityExportConfig{
-		NumAssets:         numAssets,
+		NumAssets:         max(numAssets, 50),
 		State:             state,
 		Severity:          severity,
 		IncludeUnlicensed: includeUnlicensed,

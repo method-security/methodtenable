@@ -17,7 +17,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-func ExportAssets(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *assetfern.VmAssetExportConfig) *assetfern.VmAssetExportReport {
+func ExportAssets(ctx context.Context, secrets methodtenablefern.SecretConfig, config assetfern.VmAssetExportConfig) *assetfern.VmAssetExportReport {
 	log := svc1log.FromContext(ctx)
 	log.Info("Starting asset export", svc1log.SafeParam("config", config))
 
@@ -25,33 +25,40 @@ func ExportAssets(ctx context.Context, secrets *methodtenablefern.SecretConfig, 
 	report := &assetfern.VmAssetExportReport{
 		Result: &assetfern.AssetExportResult{},
 		Errors: []string{},
-		Config: config,
+		Config: &config,
 	}
 
 	// Call the utils function to initiate the export
-	tenableAPIResult, errorStrings := utils.APIVmAssetV2Export(ctx, secrets, config)
+	tenableAPIResult, errorStrings := utils.APIVmAssetV2Export(ctx, &secrets, &config)
 
 	// Always return success if we have a valid export UUID, even if status monitoring failed
 	if tenableAPIResult != nil && tenableAPIResult.ExportUuid != nil {
 		log.Info("Asset export completed successfully", svc1log.SafeParam("export_uuid", tenableAPIResult.ExportUuid))
 
 		// Apply client-side filters to get filtered assets for transformation
-		filteredResult := applyClientSideFilters(ctx, tenableAPIResult, config)
+		filteredResult := applyClientSideFilters(ctx, tenableAPIResult, &config)
 
 		// Transform filtered Tenable assets into our Asset structure, but keep raw as original
-		assetDetails := transformTenableAssets(ctx, config, filteredResult, tenableAPIResult)
+		assetDetails := transformTenableAssets(ctx, &config, filteredResult, tenableAPIResult)
 
 		// Marshal Data
 		report.Result = &assetfern.AssetExportResult{
 			Result: assetDetails,
 		}
+
+		// Add raw data to the report if not hidden by the user
+		if !config.GetHideRawOutput() {
+			report.Result.Result.Raw = tenableAPIResult
+		}
+
+		// Add errors to the report
 		report.Errors = errorStrings
-		return report
+	} else {
+		// If no export UUID, something went wrong
+		log.Error("asset export failed - no export UUID returned")
+		report.Errors = append(report.Errors, "no export UUID returned")
 	}
 
-	// If no export UUID, something went wrong
-	log.Error("asset export failed - no export UUID returned")
-	report.Errors = append(report.Errors, "no export UUID returned")
 	return report
 }
 

@@ -38,7 +38,7 @@ types:
       ipaddress: string
       fqdns: optional<list<string>>
       operatingSystems: optional<list<string>> # List for now
-      installedSoftware: optional<list<string>> # List for now
+      installedSoftware: optional<list<string>>
   AssetList:
     properties:
       assets: optional<list<Asset>>

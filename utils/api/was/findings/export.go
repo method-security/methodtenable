@@ -16,22 +16,16 @@ import (
 	apiwasfern "github.com/Method-Security/methodtenable/generated/go/utils/api/was/findings"
 	wasfern "github.com/Method-Security/methodtenable/generated/go/was/findings"
 
+	// Internal
+	apiutils "github.com/Method-Security/methodtenable/utils/api"
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
-
-const TenableAPIBaseURL = "https://cloud.tenable.com"
 
 // API Call Overview (3 API Calls):
 // initiateWasFindingsExport: Initiates a WAS findings export and returns the export UUID (POST /was/v1/export/vulns)
 // waitForWasFindingsExportCompletion: Waits for the export to complete (GET /was/v1/export/vulns/{export_uuid}/status)
 // downloadAllWasFindingsChunks: Downloads all the export chunks from the Tenable API (GET /was/v1/export/vulns/{export_uuid}/chunks/{chunk_id})
-
-// setTenableAPIKeyHeader sets the X-ApiKeys header with the provided secrets
-func setTenableAPIKeyHeader(req *http.Request, secrets *methodtenablefern.SecretConfig) {
-	req.Header.Set("X-ApiKeys", fmt.Sprintf("accessKey=%s;secretKey=%s",
-		*secrets.GetAccessKey(), *secrets.GetSecretKey()))
-}
 
 // APIWasFindingsExport initiates a WAS findings export and waits for it to complete
 func APIWasFindingsExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *wasfern.WasFindingsExportConfig) (*apiwasfern.ApiWasFindingsExportReport, []string) {
@@ -141,14 +135,14 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 
 	log.Info("WAS findings export request body", svc1log.SafeParam("request_body", string(requestBody)))
 
-	req, err := http.NewRequest("POST", TenableAPIBaseURL+"/was/v1/export/vulns", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", apiutils.TenableAPIBaseURL+"/was/v1/export/vulns", bytes.NewBuffer(requestBody))
 	if err != nil {
 		log.Error("failed to create WAS findings export request", svc1log.SafeParam("error", err))
 		return "", fmt.Errorf("failed to create WAS findings export request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {
@@ -245,13 +239,13 @@ func waitForWasFindingsExportCompletion(ctx context.Context, secrets *methodtena
 func checkWasFindingsExportStatus(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, config *wasfern.WasFindingsExportConfig) (*apiwasfern.ApiWasFindingsExportStatusResponse, error) {
 	log := svc1log.FromContext(ctx)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/was/v1/export/vulns/%s/status", TenableAPIBaseURL, exportUUID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/was/v1/export/vulns/%s/status", apiutils.TenableAPIBaseURL, exportUUID), nil)
 	if err != nil {
 		log.Error("failed to create WAS findings export status request", svc1log.SafeParam("error", err))
 		return nil, fmt.Errorf("failed to create WAS findings export status request: %w", err)
 	}
 
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {
@@ -321,7 +315,7 @@ func downloadAllWasFindingsChunks(ctx context.Context, secrets *methodtenablefer
 // downloadSingleWasFindingsChunk downloads a single WAS findings chunk from the Tenable API
 func downloadSingleWasFindingsChunk(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, chunkID int, config *wasfern.WasFindingsExportConfig) ([]*apiwasfern.WasFinding, error) {
 	log := svc1log.FromContext(ctx)
-	url := fmt.Sprintf("%s/was/v1/export/vulns/%s/chunks/%d", TenableAPIBaseURL, exportUUID, chunkID)
+	url := fmt.Sprintf("%s/was/v1/export/vulns/%s/chunks/%d", apiutils.TenableAPIBaseURL, exportUUID, chunkID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -330,7 +324,7 @@ func downloadSingleWasFindingsChunk(ctx context.Context, secrets *methodtenablef
 	}
 
 	req.Header.Set("Accept", "application/octet-stream")
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {

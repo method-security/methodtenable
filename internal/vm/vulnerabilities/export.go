@@ -14,7 +14,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-func ExportVulnerabilities(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *vulnfern.VmVulnerabilityExportConfig) *vulnfern.VmVulnerabilityExportReport {
+func ExportVulnerabilities(ctx context.Context, secrets methodtenablefern.SecretConfig, config vulnfern.VmVulnerabilityExportConfig) *vulnfern.VmVulnerabilityExportReport {
 	log := svc1log.FromContext(ctx)
 	log.Info("Starting vulnerability export", svc1log.SafeParam("config", config))
 
@@ -22,11 +22,11 @@ func ExportVulnerabilities(ctx context.Context, secrets *methodtenablefern.Secre
 	report := &vulnfern.VmVulnerabilityExportReport{
 		Result: &vulnfern.VulnerabilityExportResult{},
 		Errors: []string{},
-		Config: config,
+		Config: &config,
 	}
 
 	// Call the utils function to initiate the vulnerability export
-	tenableAPIResult, errorStrings := utils.APIVmVulnerabilityExport(ctx, secrets, config)
+	tenableAPIResult, errorStrings := utils.APIVmVulnerabilityExport(ctx, &secrets, &config)
 
 	// Always return success if we have a valid export UUID, even if status monitoring failed
 	if tenableAPIResult != nil && tenableAPIResult.ExportUuid != nil {
@@ -55,6 +55,10 @@ func ExportVulnerabilities(ctx context.Context, secrets *methodtenablefern.Secre
 
 		report.Result.Result = vulnerabilityDetails
 		report.Errors = errorStrings
+	} else {
+		// If no export UUID, something went wrong
+		log.Error("vulnerability export failed - no export UUID returned")
+		report.Errors = append(report.Errors, "no export UUID returned")
 	}
 
 	return report
@@ -85,8 +89,8 @@ func transformToSimplifiedVulnerabilities(ctx context.Context, apiResult *apivul
 							DeviceType:      apiVuln.Asset.DeviceType,
 						}
 
-						// Extract port information
-						if apiVuln.Port != nil {
+						// Extract port information - exclude when port is 0
+						if apiVuln.Port != nil && apiVuln.Port.Port != nil && *apiVuln.Port.Port != 0 {
 							assetInfo.Port = &vulnfern.VulnerabilityPort{
 								Port:     apiVuln.Port.Port,
 								Protocol: &apiVuln.Port.Protocol,

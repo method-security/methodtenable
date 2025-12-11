@@ -1,93 +1,67 @@
 package findings
 
 import (
+	// Standard
 	"context"
-	"fmt"
-	"time"
-
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
 	apiwasfern "github.com/Method-Security/methodtenable/generated/go/utils/api/was/findings"
 	wasfern "github.com/Method-Security/methodtenable/generated/go/was/findings"
-	utils "github.com/Method-Security/methodtenable/utils/api/was/findings"
 
+	// Utils
+	utils "github.com/Method-Security/methodtenable/utils/api/was/findings"
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-// WasFindingsExport handles the export of WAS findings data from Tenable
-func WasFindingsExport(
-	ctx context.Context,
-	config wasfern.WasFindingsExportConfig,
-	secretConfig methodtenablefern.SecretConfig,
-) (*wasfern.WasFindingsExportReport, error) {
-	// Initialize the logger
-	logger := svc1log.FromContext(ctx)
+func ExportFindings(ctx context.Context, secrets methodtenablefern.SecretConfig, config wasfern.WasFindingsExportConfig) *wasfern.WasFindingsExportReport {
+	log := svc1log.FromContext(ctx)
+	log.Info("Starting WAS findings export", svc1log.SafeParam("config", config))
 
-	// Log the start of the export
-	logger.Info("Starting WAS findings export", svc1log.SafeParam("config", config))
-
-	// Start timer
-	start := time.Now()
-	defer func() {
-		logger.Info("WAS findings export completed", svc1log.SafeParam("duration", time.Since(start)))
-	}()
-
-	// Initialize the result
-	result := &wasfern.WasFindingsExportReport{
-		Config: &config,
+	// Initialize the report
+	report := &wasfern.WasFindingsExportReport{
+		Result: &wasfern.WasFindingsExportResult{},
 		Errors: []string{},
+		Config: &config,
 	}
 
-	// Call the API to search for vulnerabilities
-	apiResult, apiErrors := utils.APIWasFindingsExport(ctx, &secretConfig, &config)
-	if len(apiErrors) > 0 {
-		for _, apiError := range apiErrors {
-			logger.Error("WAS findings export error", svc1log.SafeParam("error", apiError))
-			result.Errors = append(result.Errors, apiError)
+	// Call the utils function to initiate the WAS findings export
+	tenableAPIResult, errorStrings := utils.APIWasFindingsExport(ctx, &secrets, &config)
+
+	// Always return success if we have a valid export UUID, even if status monitoring failed
+	if tenableAPIResult != nil && tenableAPIResult.Findings != nil && tenableAPIResult.Findings.ExportUuid != nil {
+		log.Info("WAS findings export completed successfully", svc1log.SafeParam("export_uuid", tenableAPIResult.Findings.ExportUuid))
+
+		// Transform the complex API response to simplified findings format
+		findings, err := transformToSimplifiedFindings(ctx, tenableAPIResult)
+		if err != nil {
+			log.Error("Failed to transform findings", svc1log.SafeParam("error", err))
+			report.Errors = append(report.Errors, err.Error())
+			return report
 		}
-	}
-	if apiResult == nil {
-		return result, fmt.Errorf("WAS findings export failed")
-	}
 
-	// Return the raw API result directly since it contains rich finding data
-	// The API layer handles the export/status/chunks workflow and returns the complete findings
-	logger.Info("WAS findings export completed successfully",
-		svc1log.SafeParam("has_api_result", apiResult != nil),
-		svc1log.SafeParam("has_findings", apiResult.Findings != nil),
-		svc1log.SafeParam("findings_count", func() int {
-			if apiResult.Findings != nil && apiResult.Findings.Items != nil {
-				return len(apiResult.Findings.Items)
-			}
-			return 0
-		}()))
+		// Create the finding details
+		findingDetails := &wasfern.WasFindingDetails{
+			ExportUuid: *tenableAPIResult.Findings.ExportUuid,
+			Findings: &wasfern.WasFindingList{
+				Findings: findings,
+			},
+		}
 
-	// Transform the complex API response to simplified findings format
-	internalFindings, err := transformToSimplifiedFindings(ctx, apiResult)
-	if err != nil {
-		logger.Error("Failed to transform findings", svc1log.SafeParam("error", err))
-		result.Errors = append(result.Errors, err.Error())
-		return result, fmt.Errorf("WAS findings transformation failed")
+		// Add raw data to the report if not hidden by the user
+		if !config.GetHideRawOutput() {
+			findingDetails.Raw = tenableAPIResult
+		}
+
+		report.Result.Result = findingDetails
+		report.Errors = errorStrings
+	} else {
+		// If no export UUID, something went wrong
+		log.Error("WAS findings export failed - no export UUID returned")
+		report.Errors = append(report.Errors, "no export UUID returned")
 	}
 
-	// Create the finding details
-	findingDetails := &wasfern.WasFindingDetails{
-		ExportUuid: *apiResult.Findings.ExportUuid,
-		Findings:   &wasfern.WasFindingList{Findings: internalFindings},
-	}
-
-	// Add raw data to the report if not hidden by the user
-	if !config.GetHideRawOutput() {
-		findingDetails.Raw = apiResult.Findings.Items // Complete rich data
-	}
-
-	// Return both structured and conditionally raw data
-	result.Result = &wasfern.WasFindingsExportResult{
-		Result: findingDetails,
-	}
-
-	return result, nil
+	return report
 }
 
 // transformToSimplifiedFindings transforms the complex Tenable API response to the simplified findings format

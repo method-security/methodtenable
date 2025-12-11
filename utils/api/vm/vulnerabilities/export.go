@@ -16,22 +16,16 @@ import (
 	apivulnfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/vulnerabilities"
 	vulnfern "github.com/Method-Security/methodtenable/generated/go/vm/vulnerabilities"
 
+	// Internal
+	apiutils "github.com/Method-Security/methodtenable/utils/api"
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
-
-const TenableAPIBaseURL = "https://cloud.tenable.com"
 
 // API Call Overview (3 API Calls):
 // initiateVulnerabilityExport: Initiates a vulnerability export and returns the export UUID (POST /vulns/export)
 // waitForVulnerabilityExportCompletion: Waits for the export to complete and returns the vulnerabilities (GET /vulns/export/{export_uuid}/status)
 // downloadAllVulnerabilityChunks: Downloads all the export chunks from the Tenable API (GET /vulns/export/{export_uuid}/chunks)
-
-// setTenableAPIKeyHeader sets the X-ApiKeys header with the provided secrets
-func setTenableAPIKeyHeader(req *http.Request, secrets *methodtenablefern.SecretConfig) {
-	req.Header.Set("X-ApiKeys", fmt.Sprintf("accessKey=%s;secretKey=%s",
-		*secrets.GetAccessKey(), *secrets.GetSecretKey()))
-}
 
 // APIVmVulnerabilityExport initiates a vulnerability export and waits for it to complete
 func APIVmVulnerabilityExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *vulnfern.VmVulnerabilityExportConfig) (*apivulnfern.ApiVmVulnerabilityExportReport, []string) {
@@ -160,7 +154,7 @@ func initiateVulnerabilityExport(ctx context.Context, secrets *methodtenablefern
 		// Convert to lowercase as expected by API
 		severities := []string{}
 		for _, severity := range config.GetSeverity() {
-			severities = append(severities, strings.ToLower(severity))
+			severities = append(severities, strings.ToLower(string(severity)))
 		}
 		filters.Severity = severities
 		hasFilters = true
@@ -197,14 +191,14 @@ func initiateVulnerabilityExport(ctx context.Context, secrets *methodtenablefern
 
 	log.Info("Vulnerability export request body being sent", svc1log.SafeParam("request_body", string(requestBody)))
 
-	req, err := http.NewRequest("POST", TenableAPIBaseURL+"/vulns/export", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", apiutils.TenableAPIBaseURL+"/vulns/export", bytes.NewBuffer(requestBody))
 	if err != nil {
 		log.Error("failed to create vulnerability export request", svc1log.SafeParam("error", err))
 		return "", fmt.Errorf("failed to create vulnerability export request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {
@@ -314,13 +308,13 @@ func waitForVulnerabilityExportCompletion(ctx context.Context, secrets *methodte
 func checkVulnerabilityExportStatus(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, config *vulnfern.VmVulnerabilityExportConfig) (*apivulnfern.ApiVmVulnerabilityExportStatusResponse, error) {
 	log := svc1log.FromContext(ctx)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vulns/export/%s/status", TenableAPIBaseURL, exportUUID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/vulns/export/%s/status", apiutils.TenableAPIBaseURL, exportUUID), nil)
 	if err != nil {
 		log.Error("failed to create vulnerability export status request", svc1log.SafeParam("error", err))
 		return nil, fmt.Errorf("failed to create vulnerability export status request: %w", err)
 	}
 
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {
@@ -386,7 +380,7 @@ func downloadAllVulnerabilityChunks(ctx context.Context, secrets *methodtenablef
 // downloadSingleVulnerabilityChunk downloads a single vulnerability chunk from the Tenable API
 func downloadSingleVulnerabilityChunk(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, chunkID int, config *vulnfern.VmVulnerabilityExportConfig) ([]*apivulnfern.TenableVulnerability, error) {
 	log := svc1log.FromContext(ctx)
-	url := fmt.Sprintf("%s/vulns/export/%s/chunks/%d", TenableAPIBaseURL, exportUUID, chunkID)
+	url := fmt.Sprintf("%s/vulns/export/%s/chunks/%d", apiutils.TenableAPIBaseURL, exportUUID, chunkID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -394,7 +388,7 @@ func downloadSingleVulnerabilityChunk(ctx context.Context, secrets *methodtenabl
 		return nil, fmt.Errorf("failed to create vulnerability chunk request: %w", err)
 	}
 
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	timeout := config.GetTimeout()
 	if timeout <= 0 {

@@ -16,22 +16,16 @@ import (
 	apiassetfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/assets"
 	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/assets"
 
+	// Internal
+	apiutils "github.com/Method-Security/methodtenable/utils/api"
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
-
-const TenableAPIBaseURL = "https://cloud.tenable.com"
 
 // API Call Overview (3 API Calls):
 // initiateExport: Initiates an asset export and returns the export UUID (POST /assets/v2/export)
 // waitForExportCompletion: Waits for the export to complete and returns the assets (GET /assets/export/{export_uuid}/status)
 // downloadAllChunks: Downloads all the export chunks from the Tenable API (GET /assets/export/{export_uuid}/chunks)
-
-// setTenableAPIKeyHeader sets the X-ApiKeys header with the provided secrets
-func setTenableAPIKeyHeader(req *http.Request, secrets *methodtenablefern.SecretConfig) {
-	req.Header.Set("X-ApiKeys", fmt.Sprintf("accessKey=%s;secretKey=%s",
-		*secrets.GetAccessKey(), *secrets.GetSecretKey()))
-}
 
 // APIVmAssetV2Export initiates an asset export and waits for it to complete
 func APIVmAssetV2Export(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *assetfern.VmAssetExportConfig) (*apiassetfern.ApiVmAsssetExportReport, []string) {
@@ -182,14 +176,14 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 
 	log.Info("Request body being sent", svc1log.SafeParam("request_body", string(requestBody)))
 
-	req, err := http.NewRequest("POST", TenableAPIBaseURL+"/assets/v2/export", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", apiutils.TenableAPIBaseURL+"/assets/v2/export", bytes.NewBuffer(requestBody))
 	if err != nil {
 		log.Error("failed to create request", svc1log.SafeParam("error", err))
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	client := &http.Client{Timeout: time.Duration(config.GetTimeout()) * time.Second}
 	resp, err := client.Do(req)
@@ -285,13 +279,13 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 func checkExportStatus(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, config *assetfern.VmAssetExportConfig) (*apiassetfern.ApiVmAssetExportStatusResponse, error) {
 	log := svc1log.FromContext(ctx)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/assets/export/%s/status", TenableAPIBaseURL, exportUUID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/assets/export/%s/status", apiutils.TenableAPIBaseURL, exportUUID), nil)
 	if err != nil {
 		log.Error("failed to create status request", svc1log.SafeParam("error", err))
 		return nil, fmt.Errorf("failed to create status request: %w", err)
 	}
 
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	client := &http.Client{Timeout: time.Duration(config.GetTimeout()) * time.Second}
 	resp, err := client.Do(req)
@@ -353,7 +347,7 @@ func downloadAllChunks(ctx context.Context, secrets *methodtenablefern.SecretCon
 // downloadSingleChunk downloads a single chunk from the Tenable API
 func downloadSingleChunk(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, chunkID int, config *assetfern.VmAssetExportConfig) ([]*apiassetfern.TenableAsset, error) {
 	log := svc1log.FromContext(ctx)
-	url := fmt.Sprintf("%s/assets/export/%s/chunks/%d", TenableAPIBaseURL, exportUUID, chunkID)
+	url := fmt.Sprintf("%s/assets/export/%s/chunks/%d", apiutils.TenableAPIBaseURL, exportUUID, chunkID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -361,7 +355,7 @@ func downloadSingleChunk(ctx context.Context, secrets *methodtenablefern.SecretC
 		return nil, fmt.Errorf("failed to create chunk request: %w", err)
 	}
 
-	setTenableAPIKeyHeader(req, secrets)
+	apiutils.SetTenableAPIKeyHeader(req, secrets)
 
 	client := &http.Client{Timeout: time.Duration(config.GetTimeout()) * time.Second}
 	resp, err := client.Do(req)

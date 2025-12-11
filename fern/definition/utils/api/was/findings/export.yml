@@ -1,8 +1,11 @@
 types:
+  # Report
   ApiWasFindingsExportReport:
     properties:
+      export_uuid: optional<string>
       findings: optional<ApiWasFindingsExportResponse>
       errors: optional<list<string>>
+  # Note: Snake case is needed to match the API structure
   # /was/v1/export/vulns Structs
   ApiWasFindingsExportRequest:
     properties:
