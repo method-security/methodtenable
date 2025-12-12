@@ -1,0 +1,109 @@
+types:
+  # Report
+  ApiVmAsssetExportReport:
+    properties:
+      export_uuid: optional<string>
+      chunks: optional<list<ApiVmAssetExportChunkResponse>>
+      errors: optional<list<string>>
+  # Note: Snake case is needed to match the API structure
+  # /assets/v2/export Structs
+  ApiVmAssetV2ExportRequest:
+    properties:
+      chunk_size: optional<integer>
+      filters: optional<ApiVmAssetExportFilters>
+  ApiVmAssetExportFilters:
+    properties:
+      sources: optional<list<string>>
+      types: optional<list<string>>
+      since: optional<integer>
+      created_at: optional<integer>
+      updated_at: optional<integer>
+      terminated_at: optional<integer>
+      is_terminated: optional<boolean>
+      deleted_at: optional<integer>
+      is_deleted: optional<boolean>
+      is_licensed: optional<boolean>
+      first_scan_time: optional<integer>
+      last_authenticated_scan_time: optional<integer>
+      last_assessed: optional<integer>
+      last_scan_id: optional<string>
+      has_plugin_results: optional<boolean>
+      network_id: optional<string>
+      servicenow_sysid: optional<boolean>
+  ApiVmAssetV2ExportResponse:
+    properties:
+      export_uuid: string
+  # /assets/export/{export_uuid}/status Structs
+  ApiVmAssetExportStatusRequest:
+    properties:
+      export_uuid: string
+  ApiVmAssetExportStatusResponse:
+    properties:
+      status: string
+      chunks_available: list<integer>
+      chunks_finished: list<integer>
+      chunks_cancelled: list<integer>
+      chunks_failed: list<integer>
+  # /assets/export/{export_uuid}/chunks/{chunk_id} Structs
+  ApiVmAssetExportChunkRequest:
+    properties:
+      export_uuid: string
+      chunk_id: integer
+  ApiVmAssetExportChunkResponse:
+    properties:
+      assets: optional<list<TenableAsset>>
+  TenableAsset:
+    properties:
+      has_agent: optional<boolean>
+      has_plugin_results: optional<boolean>
+      id: string
+      installed_software: optional<list<string>>
+      is_licensed: optional<boolean>
+      is_public: optional<boolean>
+      network: optional<AssetNetwork>
+      operating_systems: optional<list<string>>
+      scan: optional<AssetScan>
+      sources: optional<list<AssetSource>>
+      system_types: optional<list<string>>
+      timestamps: optional<AssetTimestamps>
+      types: optional<list<string>>
+      tags: optional<list<AssetTag>>
+  AssetNetwork:
+    properties:
+      fqdns: optional<list<string>>
+      hostnames: optional<list<string>>
+      ipv4s: optional<list<string>>
+      network_id: optional<string>
+      network_interfaces: optional<list<NetworkInterface>>
+      network_name: optional<string>
+  NetworkInterface:
+    properties:
+      fqdns: optional<list<string>>
+      ipv4s: optional<list<string>>
+      name: optional<string>
+  AssetScan:
+    properties:
+      first_scan_time: optional<string>
+      last_authentication_scan_status: optional<string>
+      last_licensed_scan_date: optional<string>
+      last_scan_id: optional<string>
+      last_scan_target: optional<string>
+      last_scan_time: optional<string>
+      last_schedule_id: optional<string>
+  AssetSource:
+    properties:
+      first_seen: optional<string>
+      last_seen: optional<string>
+      name: optional<string>
+  AssetTimestamps:
+    properties:
+      created_at: optional<string>
+      first_seen: optional<string>
+      last_seen: optional<string>
+      updated_at: optional<string>
+  AssetTag:
+    properties:
+      key: optional<string>
+      value: optional<string>
+      added_by: optional<string>
+      added_at: optional<string>

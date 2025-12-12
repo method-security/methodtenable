@@ -1,0 +1,58 @@
+types:
+  # ENUMs
+  assetType:
+    enum:
+      - HOST
+      - WEBAPP
+  sourceType:
+    enum:
+      - AWS
+      - NESSUS_AGENT
+      - PVS
+      - NESSUS_SCAN
+      - WAS
+  # Config
+  VmAssetExportConfig:
+    properties:
+      chunkSize: integer
+      createdAt: optional<datetime>
+      updatedAt: optional<datetime>
+      lastAssessed: optional<datetime>
+      deletedAt: optional<datetime>
+      terminatedAt: optional<datetime>
+      tags: optional<list<string>>
+      sources: optional<list<sourceType>>
+      types: optional<list<assetType>>
+      ipv4s: optional<list<string>>
+      hostnames: optional<list<string>>
+      operatingSystems: optional<list<string>>
+      hasAgent: boolean
+      servicenowSysid: boolean
+      maxWaitTime: integer
+      sleepTime: integer
+      timeout: integer
+      hideRawOutput: boolean
+  # Intermediate Structures
+  Asset:
+    properties:
+      ipaddress: string
+      fqdns: optional<list<string>>
+      operatingSystems: optional<list<string>> # List for now
+      installedSoftware: optional<list<string>>
+  AssetList:
+    properties:
+      assets: optional<list<Asset>>
+  AssetDetails:
+    properties:
+      export_uuid: string
+      assets: AssetList
+      raw: unknown
+  AssetExportResult:
+    properties:
+      result: optional<AssetDetails>
+  # Report
+  VmAssetExportReport:
+    properties:
+      result: AssetExportResult
+      errors: optional<list<string>>
+      config: VmAssetExportConfig

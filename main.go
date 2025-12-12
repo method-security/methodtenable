@@ -14,6 +14,8 @@ func main() {
 
 	methodtenable := cmd.NewMethodTenable(version)
 	methodtenable.InitRootCommand()
+	methodtenable.InitVMCommand()
+	methodtenable.InitWASCommand()
 
 	if err := methodtenable.RootCmd.Execute(); err != nil {
 		os.Exit(1)
