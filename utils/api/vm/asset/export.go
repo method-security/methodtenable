@@ -13,8 +13,8 @@ import (
 
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
-	apiassetfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/assets"
-	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/assets"
+	apiassetfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/asset"
+	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/asset"
 
 	// Internal
 	apiutils "github.com/Method-Security/methodtenable/utils/api"

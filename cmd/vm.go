@@ -8,15 +8,15 @@ import (
 	"time"
 
 	// Internal
-	"github.com/Method-Security/methodtenable/internal/vm/assets"
-	"github.com/Method-Security/methodtenable/internal/vm/vulnerabilities"
+	assets "github.com/Method-Security/methodtenable/internal/vm/asset"
+	vulnerabilities "github.com/Method-Security/methodtenable/internal/vm/vulnerability"
 
 	// External
 	cobra "github.com/spf13/cobra"
 	//Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
-	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/assets"
-	vulnfern "github.com/Method-Security/methodtenable/generated/go/vm/vulnerabilities"
+	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/asset"
+	vulnfern "github.com/Method-Security/methodtenable/generated/go/vm/vulnerability"
 )
 
 // InitVMCommand initializes the vm command and asset export subcommand.

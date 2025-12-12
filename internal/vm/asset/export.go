@@ -8,11 +8,11 @@ import (
 
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
-	apiassetfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/assets"
-	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/assets"
+	apiassetfern "github.com/Method-Security/methodtenable/generated/go/utils/api/vm/asset"
+	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/asset"
 
 	// Utils
-	utils "github.com/Method-Security/methodtenable/utils/api/vm/assets"
+	utils "github.com/Method-Security/methodtenable/utils/api/vm/asset"
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )

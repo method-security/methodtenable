@@ -8,12 +8,12 @@ import (
 	"time"
 
 	// Internal
-	wasfindings "github.com/Method-Security/methodtenable/internal/was/findings"
+	wasfinding "github.com/Method-Security/methodtenable/internal/was/finding"
 	// External
 	cobra "github.com/spf13/cobra"
 	//Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
-	wasfern "github.com/Method-Security/methodtenable/generated/go/was/findings"
+	wasfern "github.com/Method-Security/methodtenable/generated/go/was/finding"
 )
 
 // InitWASCommand initializes the WAS command and vulnerability export subcommand.
@@ -26,9 +26,9 @@ func (a *MethodTenable) InitWASCommand() {
 
 	// Findings Command
 	findingsCmd := &cobra.Command{
-		Use:   "findings",
-		Short: "Findings management operations",
-		Long:  `Findings management operations for Tenable Web Application Scanning.`,
+		Use:   "finding",
+		Short: "Finding management operations",
+		Long:  `Finding management operations for Tenable Web Application Scanning.`,
 	}
 
 	// Findings Export Command
@@ -169,7 +169,7 @@ Data is returned in chunks and written locally as JSON.`,
 			config := getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets, since, firstFound, lastFixed, lastFound, severityEnum, hideRawOutput)
 
 			// Generate Report
-			report := wasfindings.ExportFindings(ctx, *secretConfig, config)
+			report := wasfinding.ExportFindings(ctx, *secretConfig, config)
 
 			a.OutputSignal.Content = report
 		},

@@ -13,8 +13,8 @@ import (
 
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
-	apiwasfern "github.com/Method-Security/methodtenable/generated/go/utils/api/was/findings"
-	wasfern "github.com/Method-Security/methodtenable/generated/go/was/findings"
+	apiwasfern "github.com/Method-Security/methodtenable/generated/go/utils/api/was/finding"
+	wasfern "github.com/Method-Security/methodtenable/generated/go/was/finding"
 
 	// Internal
 	apiutils "github.com/Method-Security/methodtenable/utils/api"
