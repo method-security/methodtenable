@@ -116,6 +116,11 @@ func transformToSimplifiedFindings(ctx context.Context, apiResult *apiwasfern.Ap
 					}
 				}
 
+				// Map output field to details
+				if apiFinding.Output != nil {
+					finding.Details = apiFinding.Output
+				}
+
 				// Create the asset sub-structure
 				var asset *wasfern.WasAsset
 				if apiFinding.Asset != nil && (apiFinding.Asset.Fqdn != nil || apiFinding.Asset.Ipv4 != nil) {
