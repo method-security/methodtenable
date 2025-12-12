@@ -61,5 +61,5 @@ types:
   WasFindingsExportReport:
     properties:
       result: WasFindingsExportResult
-      errors: list<string>
+      errors: optional<list<string>>
       config: WasFindingsExportConfig

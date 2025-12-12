@@ -54,5 +54,5 @@ types:
   VmAssetExportReport:
     properties:
       result: AssetExportResult
-      errors: list<string>
+      errors: optional<list<string>>
       config: VmAssetExportConfig
