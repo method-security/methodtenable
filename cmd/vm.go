@@ -317,6 +317,11 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
+			chunkSize, err := cmd.Flags().GetInt("chunk-size")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
 			sinceStr, err := cmd.Flags().GetString("since")
 			if err != nil {
 				a.OutputSignal.AddError(err)
@@ -446,7 +451,7 @@ locally as JSON.`,
 			}
 
 			// Set configs
-			config := getVulnerabilityExportConfig(numAssets, since, lastFound, lastFixed, firstFound, indexedAt, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getVulnerabilityExportConfig(numAssets, chunkSize, since, lastFound, lastFixed, firstFound, indexedAt, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := vulnerabilities.ExportVulnerabilities(ctx, *secretConfig, *config)
@@ -455,6 +460,7 @@ locally as JSON.`,
 	}
 
 	vulnExportCmd.Flags().Int("num-assets", 500, "Specifies the number of assets used to chunk the vulnerabilities. The vulnerabilities export is split up by number of asset IDs in a chunk. (recommended max 5000, min of 50)")
+	vulnExportCmd.Flags().Int("chunk-size", 1000, "Number of vulnerabilities processed per chunk (recommended max 5000)")
 	vulnExportCmd.Flags().String("since", "", "Server-side filter: include vulns last_found or last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("last-found", "", "Server-side filter: only vulnerabilities with last_found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("last-fixed", "", "Server-side filter: only vulnerabilities with last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
@@ -520,9 +526,10 @@ func getAssetExportConfig(chunkSize int, createdAt time.Time, updatedAt time.Tim
 }
 
 // getVulnerabilityExportConfig returns a new VmVulnerabilityExportConfig struct with the given parameters
-func getVulnerabilityExportConfig(numAssets int, since time.Time, lastFound time.Time, lastFixed time.Time, firstFound time.Time, indexedAt time.Time, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
+func getVulnerabilityExportConfig(numAssets int, chunkSize int, since time.Time, lastFound time.Time, lastFixed time.Time, firstFound time.Time, indexedAt time.Time, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
 	config := &vulnfern.VmVulnerabilityExportConfig{
 		NumAssets:         max(numAssets, 50),
+		ChunkSize:         chunkSize,
 		State:             state,
 		Severity:          severity,
 		IncludeUnlicensed: includeUnlicensed,
