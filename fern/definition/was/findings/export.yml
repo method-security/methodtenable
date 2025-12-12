@@ -1,6 +1,17 @@
 imports:
   common: ../../common.yml
 types:
+  WasHttpMethod:
+    enum:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - HEAD
+      - OPTIONS
+      - PATCH
+      - CONNECT
+      - TRACE
   # Config
   WasFindingsExportConfig:
     properties:
@@ -27,6 +38,7 @@ types:
   WasAsset:
     properties:
       url: string
+      httpMethod: optional<WasHttpMethod>
       fqdn: optional<string>
       ipv4: optional<string>
   WasFindingInfo:

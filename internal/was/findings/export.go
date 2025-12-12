@@ -3,6 +3,8 @@ package findings
 import (
 	// Standard
 	"context"
+	"regexp"
+	"strings"
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
 	apiwasfern "github.com/Method-Security/methodtenable/generated/go/utils/api/was/findings"
@@ -116,10 +118,14 @@ func transformToSimplifiedFindings(ctx context.Context, apiResult *apiwasfern.Ap
 				// Create the asset sub-structure
 				var asset *wasfern.WasAsset
 				if apiFinding.Asset != nil && (apiFinding.Asset.Fqdn != nil || apiFinding.Asset.Ipv4 != nil) {
+					// Extract HTTP method from output field
+					httpMethod := extractHTTPMethod(apiFinding.Output)
+					
 					asset = &wasfern.WasAsset{
-						Url:  *apiFinding.Url,
-						Fqdn: apiFinding.Asset.Fqdn,
-						Ipv4: apiFinding.Asset.Ipv4,
+						Url:        *apiFinding.Url,
+						HttpMethod: httpMethod,
+						Fqdn:       apiFinding.Asset.Fqdn,
+						Ipv4:       apiFinding.Asset.Ipv4,
 					}
 				}
 
@@ -144,4 +150,41 @@ func transformToSimplifiedFindings(ctx context.Context, apiResult *apiwasfern.Ap
 		svc1log.SafeParam("internal_findings_count", len(internalFindings)))
 
 	return internalFindings, nil
+}
+
+// extractHTTPMethod extracts HTTP request methods (GET, POST, OPTIONS, etc.) from the output field
+func extractHTTPMethod(output *string) *wasfern.WasHttpMethod {
+	if output == nil || *output == "" {
+		return nil
+	}
+
+	// Common HTTP methods to look for - these match the enum values
+	httpMethods := []string{
+		"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH", "CONNECT", "TRACE",
+	}
+
+	// Create regex pattern to match HTTP methods at word boundaries
+	for _, method := range httpMethods {
+		// Look for the method followed by space and a path (typical HTTP request format)
+		pattern := `\b` + method + `\s+/[^\s]*`
+		re := regexp.MustCompile(pattern)
+		if re.MatchString(*output) {
+			// Convert string to enum
+			if enumMethod, err := wasfern.NewWasHttpMethodFromString(method); err == nil {
+				return &enumMethod
+			}
+		}
+
+		// Also look for method in quotes or standalone
+		pattern = `\b` + method + `\b`
+		re = regexp.MustCompile(pattern)
+		if re.MatchString(strings.ToUpper(*output)) {
+			// Convert string to enum
+			if enumMethod, err := wasfern.NewWasHttpMethodFromString(method); err == nil {
+				return &enumMethod
+			}
+		}
+	}
+
+	return nil
 }
