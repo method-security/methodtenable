@@ -53,7 +53,7 @@ types:
     properties:
       export_uuid: string
       findings: WasFindingList
-      raw: unknown
+      raw: optional<unknown>
   WasFindingsExportResult:
     properties:
       result: optional<WasFindingDetails>
