@@ -15,11 +15,11 @@ types:
   VmAssetExportConfig:
     properties:
       chunkSize: integer
-      createdAt: optional<datetime>
-      updatedAt: optional<datetime>
-      lastAssessed: optional<datetime>
-      deletedAt: optional<datetime>
-      terminatedAt: optional<datetime>
+      createdAt: optional<string>
+      updatedAt: optional<string>
+      lastAssessed: optional<string>
+      deletedAt: optional<string>
+      terminatedAt: optional<string>
       tags: optional<list<string>>
       sources: optional<list<sourceType>>
       types: optional<list<assetType>>

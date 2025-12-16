@@ -95,9 +95,8 @@ Data is returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var since time.Time
 			if sinceStr != "" {
-				since, err = time.Parse(time.RFC3339, sinceStr)
+				_, err = time.Parse(time.RFC3339, sinceStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid since format: %v", err))
 					return
@@ -109,9 +108,8 @@ Data is returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var firstFound time.Time
 			if firstFoundStr != "" {
-				firstFound, err = time.Parse(time.RFC3339, firstFoundStr)
+				_, err = time.Parse(time.RFC3339, firstFoundStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid first-found format: %v", err))
 					return
@@ -123,9 +121,8 @@ Data is returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var lastFixed time.Time
 			if lastFixedStr != "" {
-				lastFixed, err = time.Parse(time.RFC3339, lastFixedStr)
+				_, err = time.Parse(time.RFC3339, lastFixedStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid last-fixed format: %v", err))
 					return
@@ -137,9 +134,8 @@ Data is returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var lastFound time.Time
 			if lastFoundStr != "" {
-				lastFound, err = time.Parse(time.RFC3339, lastFoundStr)
+				_, err = time.Parse(time.RFC3339, lastFoundStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid last-found format: %v", err))
 					return
@@ -166,7 +162,7 @@ Data is returned in chunks and written locally as JSON.`,
 			}
 
 			// Set config
-			config := getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets, since, firstFound, lastFixed, lastFound, severityEnum, hideRawOutput)
+			config := getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets, sinceStr, firstFoundStr, lastFixedStr, lastFoundStr, severityEnum, hideRawOutput)
 
 			// Generate Report
 			report := wasfinding.ExportFindings(ctx, *secretConfig, config)
@@ -198,7 +194,7 @@ Data is returned in chunks and written locally as JSON.`,
 }
 
 // getWasFindingsExportConfig creates a WAS findings export configuration
-func getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets int, since, firstFound, lastFixed, lastFound time.Time, severity []methodtenablefern.Severity, hideRawOutput bool) wasfern.WasFindingsExportConfig {
+func getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets int, since, firstFound, lastFixed, lastFound string, severity []methodtenablefern.Severity, hideRawOutput bool) wasfern.WasFindingsExportConfig {
 	config := wasfern.WasFindingsExportConfig{
 		IncludeUnlicensed: false,
 		MaxWaitTime:       maxWaitTime,
@@ -213,17 +209,17 @@ func getWasFindingsExportConfig(timeout, maxWaitTime, sleepTime, numAssets int, 
 		config.NumAssets = &numAssets
 	}
 
-	// Only set datetime fields if they're not zero values
-	if !since.IsZero() {
+	// Only set datetime fields if they're not empty strings
+	if since != "" {
 		config.Since = &since
 	}
-	if !firstFound.IsZero() {
+	if firstFound != "" {
 		config.FirstFound = &firstFound
 	}
-	if !lastFixed.IsZero() {
+	if lastFixed != "" {
 		config.LastFixed = &lastFixed
 	}
-	if !lastFound.IsZero() {
+	if lastFound != "" {
 		config.LastFound = &lastFound
 	}
 

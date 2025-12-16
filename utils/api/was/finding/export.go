@@ -32,9 +32,11 @@ func APIWasFindingsExport(ctx context.Context, secrets *methodtenablefern.Secret
 	log := svc1log.FromContext(ctx)
 	errorStrings := []string{}
 
-	exportUUID, err := initiateWasFindingsExport(ctx, secrets, config)
-	if err != nil {
-		errorStrings = append(errorStrings, fmt.Sprintf("failed to initiate WAS findings export: %v", err))
+	exportUUID, initErrors := initiateWasFindingsExport(ctx, secrets, config)
+	if len(initErrors) > 0 {
+		errorStrings = append(errorStrings, initErrors...)
+	}
+	if exportUUID == "" {
 		return nil, errorStrings
 	}
 
@@ -61,12 +63,17 @@ func APIWasFindingsExport(ctx context.Context, secrets *methodtenablefern.Secret
 	}
 
 	log.Info("WAS findings export operation completed", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("errors", result.Errors))
+	// Return accumulated errors in the signal
+	if len(result.Errors) > 0 {
+		errorStrings = append(errorStrings, result.Errors...)
+	}
 	return result, errorStrings
 }
 
 // initiateWasFindingsExport initiates a WAS findings export and returns the export UUID
-func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *wasfern.WasFindingsExportConfig) (string, error) {
+func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *wasfern.WasFindingsExportConfig) (string, []string) {
 	log := svc1log.FromContext(ctx)
+	errorStrings := []string{}
 
 	// Build the request payload for WAS findings export
 	exportRequest := apiwasfern.ApiWasFindingsExportRequest{}
@@ -82,31 +89,59 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 	hasFilters := false
 
 	if config.Since != nil {
-		sinceTimestamp := fmt.Sprintf("%d", config.Since.Unix())
-		filters.Since = &sinceTimestamp
-		hasFilters = true
-		log.Info("Applying since filter", svc1log.SafeParam("since", config.Since))
+		t, err := time.Parse(time.RFC3339, *config.Since)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse since: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			sinceTimestamp := fmt.Sprintf("%d", t.Unix())
+			filters.Since = &sinceTimestamp
+			hasFilters = true
+			log.Info("Applying since filter", svc1log.SafeParam("since", config.Since))
+		}
 	}
 
 	if config.FirstFound != nil {
-		firstFoundTimestamp := fmt.Sprintf("%d", config.FirstFound.Unix())
-		filters.FirstFound = &firstFoundTimestamp
-		hasFilters = true
-		log.Info("Applying first_found filter", svc1log.SafeParam("first_found", config.FirstFound))
+		t, err := time.Parse(time.RFC3339, *config.FirstFound)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse first_found: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			firstFoundTimestamp := fmt.Sprintf("%d", t.Unix())
+			filters.FirstFound = &firstFoundTimestamp
+			hasFilters = true
+			log.Info("Applying first_found filter", svc1log.SafeParam("first_found", config.FirstFound))
+		}
 	}
 
 	if config.LastFixed != nil {
-		lastFixedTimestamp := fmt.Sprintf("%d", config.LastFixed.Unix())
-		filters.LastFixed = &lastFixedTimestamp
-		hasFilters = true
-		log.Info("Applying last_fixed filter", svc1log.SafeParam("last_fixed", config.LastFixed))
+		t, err := time.Parse(time.RFC3339, *config.LastFixed)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse last_fixed: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			lastFixedTimestamp := fmt.Sprintf("%d", t.Unix())
+			filters.LastFixed = &lastFixedTimestamp
+			hasFilters = true
+			log.Info("Applying last_fixed filter", svc1log.SafeParam("last_fixed", config.LastFixed))
+		}
 	}
 
 	if config.LastFound != nil {
-		lastFoundTimestamp := fmt.Sprintf("%d", config.LastFound.Unix())
-		filters.LastFound = &lastFoundTimestamp
-		hasFilters = true
-		log.Info("Applying last_found filter", svc1log.SafeParam("last_found", config.LastFound))
+		t, err := time.Parse(time.RFC3339, *config.LastFound)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse last_found: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			lastFoundTimestamp := fmt.Sprintf("%d", t.Unix())
+			filters.LastFound = &lastFoundTimestamp
+			hasFilters = true
+			log.Info("Applying last_found filter", svc1log.SafeParam("last_found", config.LastFound))
+		}
 	}
 
 	if len(config.GetSeverity()) > 0 {
@@ -129,16 +164,20 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 
 	requestBody, err := json.Marshal(exportRequest)
 	if err != nil {
-		log.Error("failed to marshal WAS findings export request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to marshal WAS findings export request: %w", err)
+		errMsg := fmt.Sprintf("failed to marshal WAS findings export request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("WAS findings export request body", svc1log.SafeParam("request_body", string(requestBody)))
 
 	req, err := http.NewRequest("POST", apiutils.TenableAPIBaseURL+"/was/v1/export/vulns", bytes.NewBuffer(requestBody))
 	if err != nil {
-		log.Error("failed to create WAS findings export request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to create WAS findings export request: %w", err)
+		errMsg := fmt.Sprintf("failed to create WAS findings export request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -151,21 +190,27 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 	client := &http.Client{Timeout: time.Duration(timeout) * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("failed to execute WAS findings export request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to execute WAS findings export request: %w", err)
+		errMsg := fmt.Sprintf("failed to execute WAS findings export request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Error("WAS findings export API request failed", svc1log.SafeParam("status", resp.StatusCode), svc1log.SafeParam("body", string(body)))
-		return "", fmt.Errorf("WAS findings export API request failed with status %d: %s", resp.StatusCode, string(body))
+		errMsg := fmt.Sprintf("WAS findings export API request failed with status %d: %s", resp.StatusCode, string(body))
+		log.Error(errMsg, svc1log.SafeParam("status", resp.StatusCode), svc1log.SafeParam("body", string(body)))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	// Read the response body
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("failed to read WAS findings export response body", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to read WAS findings export response body: %w", err)
+		errMsg := fmt.Sprintf("failed to read WAS findings export response body: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("WAS findings export API response", svc1log.SafeParam("response_body", string(responseBody)))
@@ -176,8 +221,10 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 	}
 
 	if err := json.Unmarshal(responseBody, &exportResponse); err != nil {
-		log.Error("failed to decode WAS findings export response", svc1log.SafeParam("error", err), svc1log.SafeParam("response", string(responseBody)))
-		return "", fmt.Errorf("failed to decode WAS findings export response: %w", err)
+		errMsg := fmt.Sprintf("failed to decode WAS findings export response: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err), svc1log.SafeParam("response", string(responseBody)))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("Parsed WAS findings export response", svc1log.SafeParam("export_uuid", exportResponse.ExportUUID))
@@ -187,7 +234,7 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 		log.Error("failed to close response body", svc1log.SafeParam("error", err))
 	}
 
-	return exportResponse.ExportUUID, nil
+	return exportResponse.ExportUUID, errorStrings
 }
 
 // waitForWasFindingsExportCompletion waits for a WAS findings export to complete

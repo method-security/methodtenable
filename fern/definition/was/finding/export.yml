@@ -15,13 +15,13 @@ types:
   # Config
   WasFindingsExportConfig:
     properties:
-      since: optional<datetime>
       severity: optional<list<common.Severity>>
       includeUnlicensed: boolean
       numAssets: optional<integer>
-      firstFound: optional<datetime>
-      lastFixed: optional<datetime>
-      lastFound: optional<datetime>
+      since: optional<string>
+      firstFound: optional<string>
+      lastFixed: optional<string>
+      lastFound: optional<string>
       maxWaitTime: integer
       sleepTime: integer
       timeout: integer
