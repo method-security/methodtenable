@@ -332,13 +332,14 @@ func downloadAllWasFindingsChunks(ctx context.Context, secrets *methodtenablefer
 
 	// Get the list of available chunks from the status response
 	var availableChunks []int
-	if status.ChunksAvailable != nil {
+	if len(status.ChunksAvailable) > 0 {
 		availableChunks = status.ChunksAvailable
 		log.Info("Got available chunks from status", svc1log.SafeParam("chunks", availableChunks))
 	} else {
-		// Fallback: if no chunks listed in status, try chunk 1
-		availableChunks = []int{1}
-		log.Info("No chunks available in status, trying chunk 1")
+		log.Error("No chunks available for WAS findings export",
+			svc1log.SafeParam("export_uuid", exportUUID),
+			svc1log.SafeParam("status", status.Status))
+		return nil, fmt.Errorf("no chunks available to download for export %s (potentially because no findings were found using the current filter)", exportUUID)
 	}
 
 	// Download each available chunk
