@@ -46,7 +46,7 @@ types:
     properties:
       export_uuid: string
       assets: AssetList
-      raw: unknown
+      raw: optional<unknown>
   AssetExportResult:
     properties:
       result: optional<AssetDetails>
