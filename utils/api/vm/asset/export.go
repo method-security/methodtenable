@@ -54,7 +54,7 @@ func APIVmAssetV2Export(ctx context.Context, secrets *methodtenablefern.SecretCo
 				svc1log.SafeParam("export_uuid", exportUUID),
 				svc1log.SafeParam("error", err))
 			// Don't return nil - still return the result with export UUID
-			result.Errors = append(result.Errors, fmt.Sprintf("failed to download chunks: %v", err))
+			result.Errors = append(result.Errors, fmt.Sprintf("failed to download asset chunks (potentially because no assets were found using the current filter): %v", err))
 		} else {
 			result.Chunks = []*apiassetfern.ApiVmAssetExportChunkResponse{
 				{
@@ -128,7 +128,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			createdAt := int(t.Unix())
+			createdAt := t.Unix()
 			filters.CreatedAt = &createdAt
 			hasFilters = true
 			log.Info("Applying created_at filter at API level", svc1log.SafeParam("created_at", config.GetCreatedAt()))
@@ -142,7 +142,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			updatedAt := int(t.Unix())
+			updatedAt := t.Unix()
 			filters.UpdatedAt = &updatedAt
 			hasFilters = true
 			log.Info("Applying updated_at filter at API level", svc1log.SafeParam("updated_at", config.GetUpdatedAt()))
@@ -156,7 +156,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			terminatedAt := int(t.Unix())
+			terminatedAt := t.Unix()
 			filters.TerminatedAt = &terminatedAt
 			hasFilters = true
 			log.Info("Applying terminated_at filter at API level", svc1log.SafeParam("terminated_at", config.GetTerminatedAt()))
@@ -170,7 +170,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			deletedAt := int(t.Unix())
+			deletedAt := t.Unix()
 			filters.DeletedAt = &deletedAt
 			hasFilters = true
 			log.Info("Applying deleted_at filter at API level", svc1log.SafeParam("deleted_at", config.GetDeletedAt()))
@@ -184,7 +184,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			lastAssessed := int(t.Unix())
+			lastAssessed := t.Unix()
 			filters.LastAssessed = &lastAssessed
 			hasFilters = true
 			log.Info("Applying last_assessed filter at API level", svc1log.SafeParam("last_assessed", config.GetLastAssessed()))

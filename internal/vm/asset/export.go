@@ -21,17 +21,6 @@ func ExportAssets(ctx context.Context, secrets methodtenablefern.SecretConfig, c
 	log := svc1log.FromContext(ctx)
 	log.Info("Starting asset export", svc1log.SafeParam("config", config))
 
-	// Truncate keys to first 8 characters for logging
-	accessKeyPreview := *secrets.AccessKey
-	if len(accessKeyPreview) > 8 {
-		accessKeyPreview = accessKeyPreview[:8]
-	}
-	secretKeyPreview := *secrets.SecretKey
-	if len(secretKeyPreview) > 8 {
-		secretKeyPreview = secretKeyPreview[:8]
-	}
-	log.Info("Tenable API Key", svc1log.SafeParam("access_key", accessKeyPreview), svc1log.SafeParam("secret_key", secretKeyPreview))
-
 	// Initialize the report
 	report := &assetfern.VmAssetExportReport{
 		Result: &assetfern.AssetExportResult{},
