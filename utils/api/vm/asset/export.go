@@ -32,9 +32,11 @@ func APIVmAssetV2Export(ctx context.Context, secrets *methodtenablefern.SecretCo
 	log := svc1log.FromContext(ctx)
 	errorStrings := []string{}
 
-	exportUUID, err := initiateExport(ctx, secrets, config)
-	if err != nil {
-		errorStrings = append(errorStrings, fmt.Sprintf("failed to initiate export: %v", err))
+	exportUUID, initErrors := initiateExport(ctx, secrets, config)
+	if len(initErrors) > 0 {
+		errorStrings = append(errorStrings, initErrors...)
+	}
+	if exportUUID == "" {
 		return nil, errorStrings
 	}
 
@@ -64,12 +66,17 @@ func APIVmAssetV2Export(ctx context.Context, secrets *methodtenablefern.SecretCo
 	}
 
 	log.Info("Export operation completed", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("errors", result.Errors))
-	return result, []string{}
+	// Return accumulated errors in the signal
+	if len(result.Errors) > 0 {
+		errorStrings = append(errorStrings, result.Errors...)
+	}
+	return result, errorStrings
 }
 
 // initiateExport initiates an asset export and returns the export UUID
-func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *assetfern.VmAssetExportConfig) (string, error) {
+func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig, config *assetfern.VmAssetExportConfig) (string, []string) {
 	log := svc1log.FromContext(ctx)
+	errorStrings := []string{}
 
 	chunkSize := config.GetChunkSize()
 	log.Info("Processing chunk size", svc1log.SafeParam("original_chunk_size", chunkSize))
@@ -113,40 +120,75 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 		log.Info("Applying types filter at API level", svc1log.SafeParam("types", config.GetTypes()))
 	}
 
-	// Timestamp filters - convert *time.Time to Unix timestamps
+	// Timestamp filters - convert string to *time.Time then to Unix timestamps
 	if config.GetCreatedAt() != nil {
-		createdAt := int(config.GetCreatedAt().Unix())
-		filters.CreatedAt = &createdAt
-		hasFilters = true
-		log.Info("Applying created_at filter at API level", svc1log.SafeParam("created_at", config.GetCreatedAt()))
+		t, err := time.Parse(time.RFC3339, *config.GetCreatedAt())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse created_at: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			createdAt := int(t.Unix())
+			filters.CreatedAt = &createdAt
+			hasFilters = true
+			log.Info("Applying created_at filter at API level", svc1log.SafeParam("created_at", config.GetCreatedAt()))
+		}
 	}
 
 	if config.GetUpdatedAt() != nil {
-		updatedAt := int(config.GetUpdatedAt().Unix())
-		filters.UpdatedAt = &updatedAt
-		hasFilters = true
-		log.Info("Applying updated_at filter at API level", svc1log.SafeParam("updated_at", config.GetUpdatedAt()))
+		t, err := time.Parse(time.RFC3339, *config.GetUpdatedAt())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse updated_at: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			updatedAt := int(t.Unix())
+			filters.UpdatedAt = &updatedAt
+			hasFilters = true
+			log.Info("Applying updated_at filter at API level", svc1log.SafeParam("updated_at", config.GetUpdatedAt()))
+		}
 	}
 
 	if config.GetTerminatedAt() != nil {
-		terminatedAt := int(config.GetTerminatedAt().Unix())
-		filters.TerminatedAt = &terminatedAt
-		hasFilters = true
-		log.Info("Applying terminated_at filter at API level", svc1log.SafeParam("terminated_at", config.GetTerminatedAt()))
+		t, err := time.Parse(time.RFC3339, *config.GetTerminatedAt())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse terminated_at: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			terminatedAt := int(t.Unix())
+			filters.TerminatedAt = &terminatedAt
+			hasFilters = true
+			log.Info("Applying terminated_at filter at API level", svc1log.SafeParam("terminated_at", config.GetTerminatedAt()))
+		}
 	}
 
 	if config.GetDeletedAt() != nil {
-		deletedAt := int(config.GetDeletedAt().Unix())
-		filters.DeletedAt = &deletedAt
-		hasFilters = true
-		log.Info("Applying deleted_at filter at API level", svc1log.SafeParam("deleted_at", config.GetDeletedAt()))
+		t, err := time.Parse(time.RFC3339, *config.GetDeletedAt())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse deleted_at: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			deletedAt := int(t.Unix())
+			filters.DeletedAt = &deletedAt
+			hasFilters = true
+			log.Info("Applying deleted_at filter at API level", svc1log.SafeParam("deleted_at", config.GetDeletedAt()))
+		}
 	}
 
 	if config.GetLastAssessed() != nil {
-		lastAssessed := int(config.GetLastAssessed().Unix())
-		filters.LastAssessed = &lastAssessed
-		hasFilters = true
-		log.Info("Applying last_assessed filter at API level", svc1log.SafeParam("last_assessed", config.GetLastAssessed()))
+		t, err := time.Parse(time.RFC3339, *config.GetLastAssessed())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to parse last_assessed: %v", err)
+			log.Error(errMsg, svc1log.SafeParam("error", err))
+			errorStrings = append(errorStrings, errMsg)
+		} else {
+			lastAssessed := int(t.Unix())
+			filters.LastAssessed = &lastAssessed
+			hasFilters = true
+			log.Info("Applying last_assessed filter at API level", svc1log.SafeParam("last_assessed", config.GetLastAssessed()))
+		}
 	}
 
 	// Boolean filters
@@ -170,16 +212,20 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 
 	requestBody, err := json.Marshal(exportRequest)
 	if err != nil {
-		log.Error("failed to marshal request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to marshal request: %w", err)
+		errMsg := fmt.Sprintf("failed to marshal request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("Request body being sent", svc1log.SafeParam("request_body", string(requestBody)))
 
 	req, err := http.NewRequest("POST", apiutils.TenableAPIBaseURL+"/assets/v2/export", bytes.NewBuffer(requestBody))
 	if err != nil {
-		log.Error("failed to create request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to create request: %w", err)
+		errMsg := fmt.Sprintf("failed to create request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -188,21 +234,27 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 	client := &http.Client{Timeout: time.Duration(config.GetTimeout()) * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("failed to execute request", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to execute request: %w", err)
+		errMsg := fmt.Sprintf("failed to execute request: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Error("API request failed with status", svc1log.SafeParam("status", resp.StatusCode), svc1log.SafeParam("body", string(body)))
-		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		errMsg := fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		log.Error(errMsg, svc1log.SafeParam("status", resp.StatusCode), svc1log.SafeParam("body", string(body)))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	// Read the response body to log it
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("failed to read response body", svc1log.SafeParam("error", err))
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		errMsg := fmt.Sprintf("failed to read response body: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("API response received", svc1log.SafeParam("response_body", string(responseBody)))
@@ -214,8 +266,10 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 	}
 
 	if err := json.Unmarshal(responseBody, &exportResponse); err != nil {
-		log.Error("failed to decode response", svc1log.SafeParam("error", err), svc1log.SafeParam("response", string(responseBody)))
-		return "", fmt.Errorf("failed to decode response: %w", err)
+		errMsg := fmt.Sprintf("failed to decode response: %v", err)
+		log.Error(errMsg, svc1log.SafeParam("error", err), svc1log.SafeParam("response", string(responseBody)))
+		errorStrings = append(errorStrings, errMsg)
+		return "", errorStrings
 	}
 
 	log.Info("Parsed export response", svc1log.SafeParam("export_uuid", exportResponse.ExportUUID), svc1log.SafeParam("status", exportResponse.Status))
@@ -225,7 +279,7 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 		log.Error("failed to close response body", svc1log.SafeParam("error", err))
 	}
 
-	return exportResponse.ExportUUID, nil
+	return exportResponse.ExportUUID, errorStrings
 }
 
 // waitForExportCompletion waits for an asset export to complete

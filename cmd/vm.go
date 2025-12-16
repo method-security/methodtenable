@@ -85,9 +85,8 @@ returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var createdAt time.Time
 			if createdAtStr != "" {
-				createdAt, err = time.Parse(time.RFC3339, createdAtStr)
+				_, err = time.Parse(time.RFC3339, createdAtStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid created-at format: %v", err))
 					return
@@ -99,9 +98,8 @@ returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var updatedAt time.Time
 			if updatedAtStr != "" {
-				updatedAt, err = time.Parse(time.RFC3339, updatedAtStr)
+				_, err = time.Parse(time.RFC3339, updatedAtStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid updated-at format: %v", err))
 					return
@@ -113,9 +111,8 @@ returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var lastAssessed time.Time
 			if lastAssessedStr != "" {
-				lastAssessed, err = time.Parse(time.RFC3339, lastAssessedStr)
+				_, err = time.Parse(time.RFC3339, lastAssessedStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid last-assessed format: %v", err))
 					return
@@ -127,9 +124,8 @@ returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var deletedAt time.Time
 			if deletedAtStr != "" {
-				deletedAt, err = time.Parse(time.RFC3339, deletedAtStr)
+				_, err = time.Parse(time.RFC3339, deletedAtStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid deleted-at format: %v", err))
 					return
@@ -140,9 +136,8 @@ returned in chunks and written locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var terminatedAt time.Time
 			if terminatedAtStr != "" {
-				terminatedAt, err = time.Parse(time.RFC3339, terminatedAtStr)
+				_, err = time.Parse(time.RFC3339, terminatedAtStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid terminated-at format: %v", err))
 					return
@@ -234,7 +229,7 @@ returned in chunks and written locally as JSON.`,
 				sourcesEnum = append(sourcesEnum, sourceType)
 			}
 
-			config := getAssetExportConfig(chunkSize, createdAt, updatedAt, lastAssessed, deletedAt, terminatedAt, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getAssetExportConfig(chunkSize, createdAtStr, updatedAtStr, lastAssessedStr, deletedAtStr, terminatedAtStr, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := assets.ExportAssets(ctx, *secretConfig, *config)
@@ -327,9 +322,8 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var since time.Time
 			if sinceStr != "" {
-				since, err = time.Parse(time.RFC3339, sinceStr)
+				_, err = time.Parse(time.RFC3339, sinceStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid since format: %v", err))
 					return
@@ -341,9 +335,8 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var lastFound time.Time
 			if lastFoundStr != "" {
-				lastFound, err = time.Parse(time.RFC3339, lastFoundStr)
+				_, err = time.Parse(time.RFC3339, lastFoundStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid last-found format: %v", err))
 					return
@@ -355,9 +348,8 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var lastFixed time.Time
 			if lastFixedStr != "" {
-				lastFixed, err = time.Parse(time.RFC3339, lastFixedStr)
+				_, err = time.Parse(time.RFC3339, lastFixedStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid last-fixed format: %v", err))
 					return
@@ -369,9 +361,8 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var firstFound time.Time
 			if firstFoundStr != "" {
-				firstFound, err = time.Parse(time.RFC3339, firstFoundStr)
+				_, err = time.Parse(time.RFC3339, firstFoundStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid first-found format: %v", err))
 					return
@@ -383,9 +374,8 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			var indexedAt time.Time
 			if indexedAtStr != "" {
-				indexedAt, err = time.Parse(time.RFC3339, indexedAtStr)
+				_, err = time.Parse(time.RFC3339, indexedAtStr)
 				if err != nil {
 					a.OutputSignal.AddError(fmt.Errorf("invalid indexed-at format: %v", err))
 					return
@@ -451,7 +441,7 @@ locally as JSON.`,
 			}
 
 			// Set configs
-			config := getVulnerabilityExportConfig(numAssets, chunkSize, since, lastFound, lastFixed, firstFound, indexedAt, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getVulnerabilityExportConfig(numAssets, chunkSize, sinceStr, lastFoundStr, lastFixedStr, firstFoundStr, indexedAtStr, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := vulnerabilities.ExportVulnerabilities(ctx, *secretConfig, *config)
@@ -489,7 +479,7 @@ locally as JSON.`,
 }
 
 // getAssetExportConfig returns a new VmAssetExportConfig struct with the given parameters
-func getAssetExportConfig(chunkSize int, createdAt time.Time, updatedAt time.Time, lastAssessed time.Time, deletedAt time.Time, terminatedAt time.Time, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ipv4s []string, hostnames []string, operatingSystems []string, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
+func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, lastAssessed string, deletedAt string, terminatedAt string, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ipv4s []string, hostnames []string, operatingSystems []string, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
 	config := &assetfern.VmAssetExportConfig{
 		ChunkSize:        chunkSize,
 		Tags:             tags,
@@ -507,26 +497,26 @@ func getAssetExportConfig(chunkSize int, createdAt time.Time, updatedAt time.Tim
 	}
 
 	// Only set datetime fields if they're not zero values
-	if !createdAt.IsZero() {
+	if createdAt != "" {
 		config.CreatedAt = &createdAt
 	}
-	if !updatedAt.IsZero() {
+	if updatedAt != "" {
 		config.UpdatedAt = &updatedAt
 	}
-	if !lastAssessed.IsZero() {
+	if lastAssessed != "" {
 		config.LastAssessed = &lastAssessed
 	}
-	if !deletedAt.IsZero() {
+	if deletedAt != "" {
 		config.DeletedAt = &deletedAt
 	}
-	if !terminatedAt.IsZero() {
+	if terminatedAt != "" {
 		config.TerminatedAt = &terminatedAt
 	}
 	return config
 }
 
 // getVulnerabilityExportConfig returns a new VmVulnerabilityExportConfig struct with the given parameters
-func getVulnerabilityExportConfig(numAssets int, chunkSize int, since time.Time, lastFound time.Time, lastFixed time.Time, firstFound time.Time, indexedAt time.Time, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
+func getVulnerabilityExportConfig(numAssets int, chunkSize int, since string, lastFound string, lastFixed string, firstFound string, indexedAt string, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
 	config := &vulnfern.VmVulnerabilityExportConfig{
 		NumAssets:         max(numAssets, 50),
 		ChunkSize:         chunkSize,
@@ -541,19 +531,19 @@ func getVulnerabilityExportConfig(numAssets int, chunkSize int, since time.Time,
 	}
 
 	// Only set datetime fields if they're not zero values
-	if !since.IsZero() {
+	if since != "" {
 		config.Since = &since
 	}
-	if !lastFound.IsZero() {
+	if lastFound != "" {
 		config.LastFound = &lastFound
 	}
-	if !lastFixed.IsZero() {
+	if lastFixed != "" {
 		config.LastFixed = &lastFixed
 	}
-	if !firstFound.IsZero() {
+	if firstFound != "" {
 		config.FirstFound = &firstFound
 	}
-	if !indexedAt.IsZero() {
+	if indexedAt != "" {
 		config.IndexedAt = &indexedAt
 	}
 
