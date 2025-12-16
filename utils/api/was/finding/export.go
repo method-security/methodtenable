@@ -55,7 +55,7 @@ func APIWasFindingsExport(ctx context.Context, secrets *methodtenablefern.Secret
 			log.Warn("WAS findings export completion monitoring failed, but returning export UUID anyway",
 				svc1log.SafeParam("export_uuid", exportUUID),
 				svc1log.SafeParam("error", err))
-			result.Errors = append(result.Errors, fmt.Sprintf("failed to download WAS findings chunks: %v", err))
+			result.Errors = append(result.Errors, fmt.Sprintf("failed to download WAS findings chunks (potentially because no findings were found using the current filter): %v", err))
 		} else {
 			result.Findings.Items = findings
 			log.Info("WAS findings export completed", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("total_findings", len(findings)))
@@ -95,8 +95,8 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			sinceTimestamp := fmt.Sprintf("%d", t.Unix())
-			filters.Since = &sinceTimestamp
+			since := t.Unix()
+			filters.Since = &since
 			hasFilters = true
 			log.Info("Applying since filter", svc1log.SafeParam("since", config.Since))
 		}
@@ -109,8 +109,8 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			firstFoundTimestamp := fmt.Sprintf("%d", t.Unix())
-			filters.FirstFound = &firstFoundTimestamp
+			firstFound := t.Unix()
+			filters.FirstFound = &firstFound
 			hasFilters = true
 			log.Info("Applying first_found filter", svc1log.SafeParam("first_found", config.FirstFound))
 		}
@@ -123,8 +123,8 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			lastFixedTimestamp := fmt.Sprintf("%d", t.Unix())
-			filters.LastFixed = &lastFixedTimestamp
+			lastFixed := t.Unix()
+			filters.LastFixed = &lastFixed
 			hasFilters = true
 			log.Info("Applying last_fixed filter", svc1log.SafeParam("last_fixed", config.LastFixed))
 		}
@@ -137,8 +137,8 @@ func initiateWasFindingsExport(ctx context.Context, secrets *methodtenablefern.S
 			log.Error(errMsg, svc1log.SafeParam("error", err))
 			errorStrings = append(errorStrings, errMsg)
 		} else {
-			lastFoundTimestamp := fmt.Sprintf("%d", t.Unix())
-			filters.LastFound = &lastFoundTimestamp
+			lastFound := t.Unix()
+			filters.LastFound = &lastFound
 			hasFilters = true
 			log.Info("Applying last_found filter", svc1log.SafeParam("last_found", config.LastFound))
 		}

@@ -14,10 +14,10 @@ types:
   ApiWasFindingsExportFilters:
     properties:
       severity: optional<list<string>>
-      since: optional<string>
-      first_found: optional<string>
-      last_fixed: optional<string>
-      last_found: optional<string>
+      since: optional<long>
+      first_found: optional<long>
+      last_fixed: optional<long>
+      last_found: optional<long>
   ApiWasFindingsExportResponse:
     properties:
       export_uuid: optional<string>

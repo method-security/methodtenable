@@ -15,17 +15,17 @@ types:
     properties:
       sources: optional<list<string>>
       types: optional<list<string>>
-      since: optional<integer>
-      created_at: optional<integer>
-      updated_at: optional<integer>
-      terminated_at: optional<integer>
+      since: optional<long>
+      created_at: optional<long>
+      updated_at: optional<long>
+      terminated_at: optional<long>
       is_terminated: optional<boolean>
-      deleted_at: optional<integer>
+      deleted_at: optional<long>
       is_deleted: optional<boolean>
       is_licensed: optional<boolean>
-      first_scan_time: optional<integer>
-      last_authenticated_scan_time: optional<integer>
-      last_assessed: optional<integer>
+      first_scan_time: optional<long>
+      last_authenticated_scan_time: optional<long>
+      last_assessed: optional<long>
       last_scan_id: optional<string>
       has_plugin_results: optional<boolean>
       network_id: optional<string>
