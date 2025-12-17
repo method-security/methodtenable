@@ -19,6 +19,7 @@ types:
       updatedAt: optional<string>
       lastAssessed: optional<string>
       deletedAt: optional<string>
+      betweenUpdatedAt: optional<string>
       terminatedAt: optional<string>
       tags: optional<list<string>>
       sources: optional<list<sourceType>>

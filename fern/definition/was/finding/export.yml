@@ -22,6 +22,7 @@ types:
       firstFound: optional<string>
       lastFixed: optional<string>
       lastFound: optional<string>
+      betweenSince: optional<string>
       maxWaitTime: integer
       sleepTime: integer
       timeout: integer
