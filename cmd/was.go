@@ -141,7 +141,7 @@ Data is returned in chunks and written locally as JSON.`,
 					return
 				}
 			}
-			severity, err := cmd.Flags().GetStringArray("severity")
+			severity, err := cmd.Flags().GetStringSlice("severity")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -180,7 +180,7 @@ Data is returned in chunks and written locally as JSON.`,
 	findingsExportCmd.Flags().String("first-found", "", "Server-side filter: findings first found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	findingsExportCmd.Flags().String("last-fixed", "", "Server-side filter: findings fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	findingsExportCmd.Flags().String("last-found", "", "Server-side filter: findings last found at or after this time (e.g., 2025-11-25T16:05:22Z)")
-	findingsExportCmd.Flags().StringArray("severity", []string{}, "Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)")
+	findingsExportCmd.Flags().StringSlice("severity", []string{}, "Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO) (comma-separated supported)")
 	findingsExportCmd.Flags().Bool("hide-raw-output", false, "Do not include raw output in the report")
 
 	// Add the findings export command to the findings command
