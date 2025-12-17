@@ -5,6 +5,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"time"
 
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
@@ -125,7 +126,7 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
-// tags, ipv4, hostname, operating_system
+// tags, ipv4, hostname, operating_system, betweenUpdatedAt
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
 
 	// Tag filter (not supported by API)
@@ -152,6 +153,13 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 	// Operating System filter (not supported by API)
 	if config.GetOperatingSystems() != nil && len(config.GetOperatingSystems()) > 0 {
 		if !matchesOperatingSystemFilter(asset, config.GetOperatingSystems()) {
+			return false
+		}
+	}
+
+	// Between Updated At filter (client-side date range filter)
+	if config.GetBetweenUpdatedAt() != nil && *config.GetBetweenUpdatedAt() != "" {
+		if !matchesBetweenUpdatedAtFilter(asset, *config.GetBetweenUpdatedAt()) {
 			return false
 		}
 	}
@@ -268,6 +276,57 @@ func matchesOperatingSystemFilter(asset *apiassetfern.TenableAsset, operatingSys
 	}
 
 	return false
+}
+
+// matchesBetweenUpdatedAtFilter checks if asset's updated_at timestamp falls within the specified date range
+func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpdatedAt string) bool {
+	// Check if asset has timestamps
+	if asset.Timestamps == nil || asset.Timestamps.UpdatedAt == nil {
+		return false
+	}
+
+	// Parse the date range: 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z
+	// Find the separator between the two RFC3339 dates
+	lastDashIdx := -1
+	for i := 20; i < len(betweenUpdatedAt)-20; i++ {
+		if betweenUpdatedAt[i] == '-' {
+			beforePart := betweenUpdatedAt[:i]
+			afterPart := betweenUpdatedAt[i+1:]
+			_, err1 := time.Parse(time.RFC3339, beforePart)
+			_, err2 := time.Parse(time.RFC3339, afterPart)
+			if err1 == nil && err2 == nil {
+				lastDashIdx = i
+				break
+			}
+		}
+	}
+
+	if lastDashIdx == -1 {
+		return false
+	}
+
+	startDateStr := betweenUpdatedAt[:lastDashIdx]
+	endDateStr := betweenUpdatedAt[lastDashIdx+1:]
+
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	if err != nil {
+		return false
+	}
+
+	endDate, err := time.Parse(time.RFC3339, endDateStr)
+	if err != nil {
+		return false
+	}
+
+	// Parse the asset's updated_at timestamp
+	assetUpdatedAt, err := time.Parse(time.RFC3339, *asset.Timestamps.UpdatedAt)
+	if err != nil {
+		return false
+	}
+
+	// Check if the asset's updated_at falls within the range (inclusive)
+	return (assetUpdatedAt.Equal(startDate) || assetUpdatedAt.After(startDate)) &&
+		(assetUpdatedAt.Equal(endDate) || assetUpdatedAt.Before(endDate))
 }
 
 // transformTenableAssets transforms the filtered Tenable API response into our Asset structure

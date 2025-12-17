@@ -143,6 +143,52 @@ returned in chunks and written locally as JSON.`,
 					return
 				}
 			}
+			betweenUpdatedAtStr, err := cmd.Flags().GetString("between-updated-at")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			if betweenUpdatedAtStr != "" {
+				// Parse the date range format: 2025-11-25T16:05:22Z-2025-11-25T16:05:22Z
+				// Split by finding the last occurrence of '-' that separates the two dates
+				// We need to be careful because RFC3339 dates contain '-' characters
+				lastDashIdx := -1
+				// RFC3339 format is like 2025-11-25T16:05:22Z (20 chars minimum)
+				// So we look for a dash that has a valid RFC3339 date before and after it
+				for i := 20; i < len(betweenUpdatedAtStr)-20; i++ {
+					if betweenUpdatedAtStr[i] == '-' {
+						// Check if this could be the separator
+						beforePart := betweenUpdatedAtStr[:i]
+						afterPart := betweenUpdatedAtStr[i+1:]
+						_, err1 := time.Parse(time.RFC3339, beforePart)
+						_, err2 := time.Parse(time.RFC3339, afterPart)
+						if err1 == nil && err2 == nil {
+							lastDashIdx = i
+							break
+						}
+					}
+				}
+
+				if lastDashIdx == -1 {
+					a.OutputSignal.AddError(fmt.Errorf("invalid between-updated-at format: expected RFC3339-RFC3339 (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)"))
+					return
+				}
+
+				startDate := betweenUpdatedAtStr[:lastDashIdx]
+				endDate := betweenUpdatedAtStr[lastDashIdx+1:]
+
+				// Validate both dates
+				_, err := time.Parse(time.RFC3339, startDate)
+				if err != nil {
+					a.OutputSignal.AddError(fmt.Errorf("invalid start date in between-updated-at: %v", err))
+					return
+				}
+				_, err = time.Parse(time.RFC3339, endDate)
+				if err != nil {
+					a.OutputSignal.AddError(fmt.Errorf("invalid end date in between-updated-at: %v", err))
+					return
+				}
+			}
 			tags, err := cmd.Flags().GetStringSlice("tags")
 			if err != nil {
 				a.OutputSignal.AddError(err)
@@ -229,7 +275,7 @@ returned in chunks and written locally as JSON.`,
 				sourcesEnum = append(sourcesEnum, sourceType)
 			}
 
-			config := getAssetExportConfig(chunkSize, createdAtStr, updatedAtStr, lastAssessedStr, deletedAtStr, terminatedAtStr, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getAssetExportConfig(chunkSize, createdAtStr, updatedAtStr, lastAssessedStr, deletedAtStr, terminatedAtStr, betweenUpdatedAtStr, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := assets.ExportAssets(ctx, *secretConfig, *config)
@@ -244,7 +290,8 @@ returned in chunks and written locally as JSON.`,
 	assetExportCmd.Flags().String("last-assessed", "", "ISO datetime: only assets last_assessed (last seen) at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	assetExportCmd.Flags().String("deleted-at", "", "ISO datetime: only assets deleted at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	assetExportCmd.Flags().String("terminated-at", "", "ISO datetime: only assets terminated at or after this time (e.g., 2025-11-25T16:05:22Z)")
-	assetExportCmd.Flags().StringSlice("tags", []string{}, "Filter by asset tag in format Category:Value (repeatable, comma-separated supported)") // Client Side filter
+	assetExportCmd.Flags().String("between-updated-at", "", "Client-side filter: date range for updated_at in RFC3339-RFC3339 format (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)") // Client Side filter
+	assetExportCmd.Flags().StringSlice("tags", []string{}, "Filter by asset tag in format Category:Value (repeatable, comma-separated supported)")                                       // Client Side filter
 	assetExportCmd.Flags().StringSlice("sources", []string{}, "Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)")
 	assetExportCmd.Flags().StringSlice("types", []string{"HOST", "WEBAPP"}, "Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported)")
 	assetExportCmd.Flags().StringSlice("ipv4s", []string{}, "Filter by IPv4 address or CIDR (repeatable, comma-separated supported)")               // Client Side filter
@@ -381,6 +428,46 @@ locally as JSON.`,
 					return
 				}
 			}
+			betweenSinceStr, err := cmd.Flags().GetString("between-since")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			if betweenSinceStr != "" {
+				// Parse the date range format: 2025-11-25T16:05:22Z-2025-11-25T16:05:22Z
+				lastDashIdx := -1
+				for i := 20; i < len(betweenSinceStr)-20; i++ {
+					if betweenSinceStr[i] == '-' {
+						beforePart := betweenSinceStr[:i]
+						afterPart := betweenSinceStr[i+1:]
+						_, err1 := time.Parse(time.RFC3339, beforePart)
+						_, err2 := time.Parse(time.RFC3339, afterPart)
+						if err1 == nil && err2 == nil {
+							lastDashIdx = i
+							break
+						}
+					}
+				}
+
+				if lastDashIdx == -1 {
+					a.OutputSignal.AddError(fmt.Errorf("invalid between-since format: expected RFC3339-RFC3339 (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)"))
+					return
+				}
+
+				startDate := betweenSinceStr[:lastDashIdx]
+				endDate := betweenSinceStr[lastDashIdx+1:]
+
+				_, err = time.Parse(time.RFC3339, startDate)
+				if err != nil {
+					a.OutputSignal.AddError(fmt.Errorf("invalid start date in between-since: %v", err))
+					return
+				}
+				_, err = time.Parse(time.RFC3339, endDate)
+				if err != nil {
+					a.OutputSignal.AddError(fmt.Errorf("invalid end date in between-since: %v", err))
+					return
+				}
+			}
 			state, err := cmd.Flags().GetStringSlice("state")
 			if err != nil {
 				a.OutputSignal.AddError(err)
@@ -441,7 +528,7 @@ locally as JSON.`,
 			}
 
 			// Set configs
-			config := getVulnerabilityExportConfig(numAssets, chunkSize, sinceStr, lastFoundStr, lastFixedStr, firstFoundStr, indexedAtStr, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getVulnerabilityExportConfig(numAssets, chunkSize, sinceStr, lastFoundStr, lastFixedStr, firstFoundStr, indexedAtStr, betweenSinceStr, stateEnum, severityEnum, includeUnlicensed, tags, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := vulnerabilities.ExportVulnerabilities(ctx, *secretConfig, *config)
@@ -456,6 +543,7 @@ locally as JSON.`,
 	vulnExportCmd.Flags().String("last-fixed", "", "Server-side filter: only vulnerabilities with last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("first-found", "", "Server-side filter: only vulnerabilities first_found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("indexed-at", "", "Server-side filter: only vulnerabilities indexed at or after this time (e.g., 2025-11-25T16:05:22Z)")
+	vulnExportCmd.Flags().String("between-since", "", "Client-side filter: date range for last_found in RFC3339-RFC3339 format (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)") // Client Side filter
 	vulnExportCmd.Flags().StringSlice("state", []string{}, "Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED) (comma-separated supported)")
 	vulnExportCmd.Flags().StringSlice("severity", []string{}, "Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL) (comma-separated supported)")
 	vulnExportCmd.Flags().Bool("include-unlicensed", false, "Server-side filter: Include vulnerabilities on unlicensed assets")
@@ -479,7 +567,7 @@ locally as JSON.`,
 }
 
 // getAssetExportConfig returns a new VmAssetExportConfig struct with the given parameters
-func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, lastAssessed string, deletedAt string, terminatedAt string, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ipv4s []string, hostnames []string, operatingSystems []string, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
+func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, lastAssessed string, deletedAt string, terminatedAt string, betweenUpdatedAt string, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ipv4s []string, hostnames []string, operatingSystems []string, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
 	config := &assetfern.VmAssetExportConfig{
 		ChunkSize:        chunkSize,
 		Tags:             tags,
@@ -512,11 +600,14 @@ func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, las
 	if terminatedAt != "" {
 		config.TerminatedAt = &terminatedAt
 	}
+	if betweenUpdatedAt != "" {
+		config.BetweenUpdatedAt = &betweenUpdatedAt
+	}
 	return config
 }
 
 // getVulnerabilityExportConfig returns a new VmVulnerabilityExportConfig struct with the given parameters
-func getVulnerabilityExportConfig(numAssets int, chunkSize int, since string, lastFound string, lastFixed string, firstFound string, indexedAt string, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
+func getVulnerabilityExportConfig(numAssets int, chunkSize int, since string, lastFound string, lastFixed string, firstFound string, indexedAt string, betweenSince string, state []methodtenablefern.State, severity []methodtenablefern.Severity, includeUnlicensed bool, tags []string, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *vulnfern.VmVulnerabilityExportConfig {
 	config := &vulnfern.VmVulnerabilityExportConfig{
 		NumAssets:         max(numAssets, 50),
 		ChunkSize:         chunkSize,
@@ -545,6 +636,9 @@ func getVulnerabilityExportConfig(numAssets int, chunkSize int, since string, la
 	}
 	if indexedAt != "" {
 		config.IndexedAt = &indexedAt
+	}
+	if betweenSince != "" {
+		config.BetweenSince = &betweenSince
 	}
 
 	return config

@@ -5,6 +5,7 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"time"
 
 	// Generated
 	methodtenablefern "github.com/Method-Security/methodtenable/generated/go"
@@ -36,8 +37,11 @@ func ExportFindings(ctx context.Context, secrets methodtenablefern.SecretConfig,
 	if tenableAPIResult != nil && tenableAPIResult.Findings != nil && tenableAPIResult.Findings.ExportUuid != nil {
 		log.Info("WAS findings export completed successfully", svc1log.SafeParam("export_uuid", tenableAPIResult.Findings.ExportUuid))
 
+		// Apply client-side filters if needed
+		filteredResult := applyClientSideFilters(ctx, tenableAPIResult, &config)
+
 		// Transform the complex API response to simplified findings format
-		findings, err := transformToSimplifiedFindings(ctx, tenableAPIResult)
+		findings, err := transformToSimplifiedFindings(ctx, filteredResult)
 		if err != nil {
 			log.Error("Failed to transform findings", svc1log.SafeParam("error", err))
 			report.Errors = append(report.Errors, err.Error())
@@ -66,6 +70,109 @@ func ExportFindings(ctx context.Context, secrets methodtenablefern.SecretConfig,
 	}
 
 	return report
+}
+
+// applyClientSideFilters applies filters that are not supported by the Tenable API
+func applyClientSideFilters(ctx context.Context, result *apiwasfern.ApiWasFindingsExportReport, config *wasfern.WasFindingsExportConfig) *apiwasfern.ApiWasFindingsExportReport {
+	logger := svc1log.FromContext(ctx)
+	if result == nil || result.Findings == nil || result.Findings.Items == nil {
+		return result
+	}
+
+	// Check if we need to apply client-side filters
+	if config.GetBetweenSince() == nil || *config.GetBetweenSince() == "" {
+		return result
+	}
+
+	totalFindingsBefore := len(result.Findings.Items)
+
+	// Filter findings
+	filteredItems := filterFindings(result.Findings.Items, config)
+
+	// Create filtered result
+	filteredResult := &apiwasfern.ApiWasFindingsExportReport{
+		ExportUuid: result.ExportUuid,
+		Errors:     result.Errors,
+		Findings: &apiwasfern.ApiWasFindingsExportResponse{
+			ExportUuid: result.Findings.ExportUuid,
+			Status:     result.Findings.Status,
+			Items:      filteredItems,
+		},
+	}
+
+	logger.Info("Applied client-side filters",
+		svc1log.SafeParam("findings_before", totalFindingsBefore),
+		svc1log.SafeParam("findings_after", len(filteredItems)))
+
+	return filteredResult
+}
+
+// filterFindings applies client-side filters to findings
+func filterFindings(findings []*apiwasfern.WasFinding, config *wasfern.WasFindingsExportConfig) []*apiwasfern.WasFinding {
+	var filtered []*apiwasfern.WasFinding
+
+	for _, finding := range findings {
+		if matchesBetweenSinceFilter(finding, config) {
+			filtered = append(filtered, finding)
+		}
+	}
+
+	return filtered
+}
+
+// matchesBetweenSinceFilter checks if finding's last_found falls within the date range
+func matchesBetweenSinceFilter(finding *apiwasfern.WasFinding, config *wasfern.WasFindingsExportConfig) bool {
+	betweenSince := config.GetBetweenSince()
+	if betweenSince == nil || *betweenSince == "" {
+		return true
+	}
+
+	// Check if finding has last_found
+	if finding.LastFound == nil {
+		return false
+	}
+
+	// Parse the date range
+	lastDashIdx := -1
+	for i := 20; i < len(*betweenSince)-20; i++ {
+		if (*betweenSince)[i] == '-' {
+			beforePart := (*betweenSince)[:i]
+			afterPart := (*betweenSince)[i+1:]
+			_, err1 := time.Parse(time.RFC3339, beforePart)
+			_, err2 := time.Parse(time.RFC3339, afterPart)
+			if err1 == nil && err2 == nil {
+				lastDashIdx = i
+				break
+			}
+		}
+	}
+
+	if lastDashIdx == -1 {
+		return false
+	}
+
+	startDateStr := (*betweenSince)[:lastDashIdx]
+	endDateStr := (*betweenSince)[lastDashIdx+1:]
+
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	if err != nil {
+		return false
+	}
+
+	endDate, err := time.Parse(time.RFC3339, endDateStr)
+	if err != nil {
+		return false
+	}
+
+	// Parse finding's last_found timestamp
+	findingLastFound, err := time.Parse(time.RFC3339, *finding.LastFound)
+	if err != nil {
+		return false
+	}
+
+	// Check if the finding's last_found falls within the range (inclusive)
+	return (findingLastFound.Equal(startDate) || findingLastFound.After(startDate)) &&
+		(findingLastFound.Equal(endDate) || findingLastFound.Before(endDate))
 }
 
 // transformToSimplifiedFindings transforms the complex Tenable API response to the simplified findings format
