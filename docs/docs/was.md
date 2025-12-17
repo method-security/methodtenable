@@ -38,7 +38,7 @@ Flags:
       --max-wait-time int        Maximum time to wait for export completion (seconds)
       --num-assets int           Number of assets used to chunk the findings (50-5000) (default 50)
       --secret-key string        Tenable API Secret Key (overrides env TENABLE_SECRET_KEY)
-      --severity stringArray     Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+      --severity stringSlice     Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)
       --since string             Server-side filter: start date for data range in Unix timestamp (e.g., 1609459200)
       --sleep-time int           Time to sleep between status checks (seconds) (default 5)
       --timeout int              Timeout for API requests in seconds (default 30)

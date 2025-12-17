@@ -37,19 +37,19 @@ Flags:
       --deleted-at string            ISO datetime: only assets deleted at or after this time  
       --has-agent                    Include only assets with agents
       --hide-raw-output              Hide raw API response data from output
-      --hostnames stringArray        Hostname filter (repeatable)
-      --ipv4s stringArray           IPv4 address filter (repeatable)
+      --hostnames stringSlice        Hostname filter (repeatable)
+      --ipv4s stringSlice           IPv4 address filter (repeatable)
       --is-licensed                 Include only licensed assets
       --last-assessed string        ISO datetime: only assets last_assessed at or after this time
       --max-wait-time int           Maximum wait time for export to complete in seconds
-      --operating-systems stringArray Operating system filter (repeatable)
+      --operating-systems stringSlice Operating system filter (repeatable)
       --servicenow-sysid            Include ServiceNow system ID information
       --sleep-time int              Sleep time between Tenable API calls in seconds (default 5)
-      --sources stringArray         Source filter (NESSUS, NESSUS_AGENT, WAS, etc.)
-      --tags stringArray            Filter by asset tag in format Category:Value (repeatable)
+      --sources stringSlice         Source filter (NESSUS, NESSUS_AGENT, WAS, etc.)
+      --tags stringSlice            Filter by asset tag in format Category:Value (repeatable)
       --terminated-at string        ISO datetime: only assets terminated at or after this time
       --timeout int                 Timeout for Tenable API requests in seconds (default 30)
-      --types stringArray           Asset type filter (WORKSTATION, SERVER, SCANNER, etc.)
+      --types stringSlice           Asset type filter (WORKSTATION, SERVER, SCANNER, etc.)
       --updated-at string           ISO datetime: only assets updated at or after this time
 
 Global Flags:
@@ -86,11 +86,11 @@ Flags:
       --max-wait-time int        Client-side config: Maximum wait time for export to complete in seconds
       --num-assets int           Number of assets processed per chunk (recommended max 5000) (default 500)
       --secret-key string        Tenable API Secret Key (overrides env TENABLE_SECRET_KEY)
-      --severity stringArray     Server-side filter: Severity filter (low, medium, high, critical)
+      --severity stringSlice     Server-side filter: Severity filter (low, medium, high, critical)
       --since string             Server-side filter: include vulns last_found or last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)
       --sleep-time int           Client-side config: Sleep time between Tenable API calls in seconds (default 5)
-      --state stringArray        Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED)
-      --tag stringArray          Server-side filter: Filter by asset tag in format Category:Value (repeatable)
+      --state stringSlice        Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED)
+      --tag stringSlice          Server-side filter: Filter by asset tag in format Category:Value (repeatable)
       --timeout int              Client-side config: Timeout for Tenable API requests in seconds (default 30)
 
 Global Flags:

@@ -143,17 +143,17 @@ returned in chunks and written locally as JSON.`,
 					return
 				}
 			}
-			tags, err := cmd.Flags().GetStringArray("tags")
+			tags, err := cmd.Flags().GetStringSlice("tags")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
 			}
-			sources, err := cmd.Flags().GetStringArray("sources")
+			sources, err := cmd.Flags().GetStringSlice("sources")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
 			}
-			types, err := cmd.Flags().GetStringArray("types")
+			types, err := cmd.Flags().GetStringSlice("types")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -169,17 +169,17 @@ returned in chunks and written locally as JSON.`,
 				typesEnum = append(typesEnum, assetType)
 			}
 
-			ipv4s, err := cmd.Flags().GetStringArray("ipv4s")
+			ipv4s, err := cmd.Flags().GetStringSlice("ipv4s")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
 			}
-			hostnames, err := cmd.Flags().GetStringArray("hostnames")
+			hostnames, err := cmd.Flags().GetStringSlice("hostnames")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
 			}
-			operatingSystems, err := cmd.Flags().GetStringArray("operating-systems")
+			operatingSystems, err := cmd.Flags().GetStringSlice("operating-systems")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -244,12 +244,12 @@ returned in chunks and written locally as JSON.`,
 	assetExportCmd.Flags().String("last-assessed", "", "ISO datetime: only assets last_assessed (last seen) at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	assetExportCmd.Flags().String("deleted-at", "", "ISO datetime: only assets deleted at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	assetExportCmd.Flags().String("terminated-at", "", "ISO datetime: only assets terminated at or after this time (e.g., 2025-11-25T16:05:22Z)")
-	assetExportCmd.Flags().StringArray("tags", []string{}, "Filter by asset tag in format Category:Value (repeatable)") // Client Side filter
-	assetExportCmd.Flags().StringArray("sources", []string{}, "Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS)")
-	assetExportCmd.Flags().StringArray("types", []string{"HOST", "WEBAPP"}, "Filter by asset type (e.g., HOST, WEBAPP) (repeatable)")
-	assetExportCmd.Flags().StringArray("ipv4s", []string{}, "Filter by IPv4 address or CIDR (repeatable)")               // Client Side filter
-	assetExportCmd.Flags().StringArray("hostnames", []string{}, "Filter by hostname (repeatable)")                       // Client Side filter
-	assetExportCmd.Flags().StringArray("operating-systems", []string{}, "Filter by operating system value (repeatable)") // Client Side filter
+	assetExportCmd.Flags().StringSlice("tags", []string{}, "Filter by asset tag in format Category:Value (repeatable, comma-separated supported)") // Client Side filter
+	assetExportCmd.Flags().StringSlice("sources", []string{}, "Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)")
+	assetExportCmd.Flags().StringSlice("types", []string{"HOST", "WEBAPP"}, "Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported)")
+	assetExportCmd.Flags().StringSlice("ipv4s", []string{}, "Filter by IPv4 address or CIDR (repeatable, comma-separated supported)")               // Client Side filter
+	assetExportCmd.Flags().StringSlice("hostnames", []string{}, "Filter by hostname (repeatable, comma-separated supported)")                       // Client Side filter
+	assetExportCmd.Flags().StringSlice("operating-systems", []string{}, "Filter by operating system value (repeatable, comma-separated supported)") // Client Side filter
 	assetExportCmd.Flags().Bool("has-agent", false, "Include only assets scanned by a Nessus Agent. This overrides the sources filter and sets it to NESSUS_AGENT.")
 	assetExportCmd.Flags().Bool("servicenow-sysid", false, "Include assets with a ServiceNow sysid")
 	assetExportCmd.Flags().Int("max-wait-time", 0, "Maximum wait time for export to complete in seconds")
@@ -381,7 +381,7 @@ locally as JSON.`,
 					return
 				}
 			}
-			state, err := cmd.Flags().GetStringArray("state")
+			state, err := cmd.Flags().GetStringSlice("state")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -395,7 +395,7 @@ locally as JSON.`,
 				}
 				stateEnum = append(stateEnum, stateType)
 			}
-			severity, err := cmd.Flags().GetStringArray("severity")
+			severity, err := cmd.Flags().GetStringSlice("severity")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -414,7 +414,7 @@ locally as JSON.`,
 				a.OutputSignal.AddError(err)
 				return
 			}
-			tags, err := cmd.Flags().GetStringArray("tag")
+			tags, err := cmd.Flags().GetStringSlice("tag")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -456,10 +456,10 @@ locally as JSON.`,
 	vulnExportCmd.Flags().String("last-fixed", "", "Server-side filter: only vulnerabilities with last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("first-found", "", "Server-side filter: only vulnerabilities first_found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	vulnExportCmd.Flags().String("indexed-at", "", "Server-side filter: only vulnerabilities indexed at or after this time (e.g., 2025-11-25T16:05:22Z)")
-	vulnExportCmd.Flags().StringArray("state", []string{}, "Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED)")
-	vulnExportCmd.Flags().StringArray("severity", []string{}, "Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL)")
+	vulnExportCmd.Flags().StringSlice("state", []string{}, "Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED) (comma-separated supported)")
+	vulnExportCmd.Flags().StringSlice("severity", []string{}, "Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL) (comma-separated supported)")
 	vulnExportCmd.Flags().Bool("include-unlicensed", false, "Server-side filter: Include vulnerabilities on unlicensed assets")
-	vulnExportCmd.Flags().StringArray("tag", []string{}, "Server-side filter: Filter by asset tag in format Category:Value (repeatable)")
+	vulnExportCmd.Flags().StringSlice("tag", []string{}, "Server-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)")
 	vulnExportCmd.Flags().Int("max-wait-time", 0, "Maximum wait time for export to complete in seconds")
 	vulnExportCmd.Flags().Int("timeout", 30, "Timeout for Tenable API requests in seconds")
 	vulnExportCmd.Flags().Int("sleep-time", 5, "Sleep time between Tenable API calls in seconds")
