@@ -27,7 +27,7 @@ types:
       ipv4s: optional<list<string>>
       hostnames: optional<list<string>>
       operatingSystems: optional<list<string>>
-      publicipaddressesonly: boolean
+      publicIpAddressesOnly: boolean
       hasAgent: boolean
       servicenowSysid: boolean
       maxWaitTime: integer
