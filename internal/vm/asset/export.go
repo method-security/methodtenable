@@ -126,8 +126,15 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
-// tags, ipv4, hostname, operating_system, betweenUpdatedAt
+// tags, ipv4, hostname, operating_system, betweenUpdatedAt, externalAssetsOnly
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
+
+	// External assets only filter (client-side filter for public-facing assets)
+	if config.GetPublicipaddressesonly() {
+		if !matchesExternalAssetsFilter(asset) {
+			return false
+		}
+	}
 
 	// Tag filter (not supported by API)
 	if config.GetTags() != nil && len(config.GetTags()) > 0 {
@@ -165,6 +172,35 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 	}
 
 	return true
+}
+
+// matchesExternalAssetsFilter checks if asset has any external (public) IP addresses
+func matchesExternalAssetsFilter(asset *apiassetfern.TenableAsset) bool {
+	// Check if asset has any IPv4 addresses
+	if asset.Network == nil || asset.Network.Ipv4S == nil {
+		return false
+	}
+
+	// Check if any IP address is public (using Go's built-in net package methods)
+	for _, ipStr := range asset.Network.Ipv4S {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			continue
+		}
+
+		// An IP is public if it's NOT any of these (covers RFC 3330 special-use addresses)
+		if !ip.IsPrivate() &&
+			!ip.IsLoopback() &&
+			!ip.IsLinkLocalUnicast() &&
+			!ip.IsLinkLocalMulticast() &&
+			!ip.IsMulticast() &&
+			!ip.IsUnspecified() &&
+			!ip.IsInterfaceLocalMulticast() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // matchesTagFilter checks if asset has any of the specified tags
