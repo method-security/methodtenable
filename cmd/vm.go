@@ -582,7 +582,7 @@ func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, las
 		Ipv4S:                 ipv4s,
 		Hostnames:             hostnames,
 		OperatingSystems:      operatingSystems,
-		Publicipaddressesonly: publicIPAddressesOnly,
+		PublicIpAddressesOnly: publicIPAddressesOnly,
 		HasAgent:              hasAgent,
 		ServicenowSysid:       servicenowSysid,
 		MaxWaitTime:           maxWaitTime,
