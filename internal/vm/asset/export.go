@@ -126,12 +126,12 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
-// tags, ipv4, hostname, operating_system, betweenUpdatedAt, externalAssetsOnly
+// tags, ipv4, hostname, operating_system, betweenUpdatedAt, publicIPAddressesOnly
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
 
-	// External assets only filter (client-side filter for public-facing assets)
+	// Public IP addresses only filter (client-side filter for public-facing assets)
 	if config.GetPublicipaddressesonly() {
-		if !matchesExternalAssetsFilter(asset) {
+		if !matchesPublicIPAddress(asset) {
 			return false
 		}
 	}
@@ -174,8 +174,8 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 	return true
 }
 
-// matchesExternalAssetsFilter checks if asset has any external (public) IP addresses
-func matchesExternalAssetsFilter(asset *apiassetfern.TenableAsset) bool {
+// matchesPublicIPAddress checks if asset has any public IP addresses
+func matchesPublicIPAddress(asset *apiassetfern.TenableAsset) bool {
 	// Check if asset has any IPv4 addresses
 	if asset.Network == nil || asset.Network.Ipv4S == nil {
 		return false
