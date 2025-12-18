@@ -130,7 +130,7 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
 
 	// Public IP addresses only filter (client-side filter for public-facing assets)
-	if config.GetPublicipaddressesonly() {
+	if config.GetPublicIpAddressesOnly() {
 		if !matchesPublicIPAddress(asset) {
 			return false
 		}
