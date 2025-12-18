@@ -126,15 +126,9 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
-// tags, ipv4, hostname, operating_system, betweenUpdatedAt, publicIPAddressesOnly
+// tags, ipv4, hostname, operating_system, betweenUpdatedAt
+// Note: publicIPAddressesOnly is handled during transformation (per-IP filtering)
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
-
-	// Public IP addresses only filter (client-side filter for public-facing assets)
-	if config.GetPublicIpAddressesOnly() {
-		if !matchesPublicIPAddress(asset) {
-			return false
-		}
-	}
 
 	// Tag filter (not supported by API)
 	if config.GetTags() != nil && len(config.GetTags()) > 0 {
@@ -174,33 +168,70 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 	return true
 }
 
-// matchesPublicIPAddress checks if asset has any public IP addresses
-func matchesPublicIPAddress(asset *apiassetfern.TenableAsset) bool {
-	// Check if asset has any IPv4 addresses
-	if asset.Network == nil || asset.Network.Ipv4S == nil {
+// isPublicIP checks if a single IP address string is public
+func isPublicIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
 		return false
 	}
 
-	// Check if any IP address is public (using Go's built-in net package methods)
-	for _, ipStr := range asset.Network.Ipv4S {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
+	// An IP is public if it's NOT any of these (covers RFC 3330 special-use addresses)
+	return !ip.IsPrivate() &&
+		!ip.IsLoopback() &&
+		!ip.IsLinkLocalUnicast() &&
+		!ip.IsLinkLocalMulticast() &&
+		!ip.IsMulticast() &&
+		!ip.IsUnspecified() &&
+		!ip.IsInterfaceLocalMulticast()
+}
+
+// filterPublicFqdns filters out internal/private FQDNs from the list
+func filterPublicFqdns(fqdns []string) []string {
+	var publicFqdns []string
+
+	for _, fqdn := range fqdns {
+		lowerFqdn := strings.ToLower(fqdn)
+
+		// Skip if it contains common internal/private domain suffixes
+		if strings.HasSuffix(lowerFqdn, ".internal") ||
+			strings.HasSuffix(lowerFqdn, ".local") {
 			continue
 		}
 
-		// An IP is public if it's NOT any of these (covers RFC 3330 special-use addresses)
-		if !ip.IsPrivate() &&
-			!ip.IsLoopback() &&
-			!ip.IsLinkLocalUnicast() &&
-			!ip.IsLinkLocalMulticast() &&
-			!ip.IsMulticast() &&
-			!ip.IsUnspecified() &&
-			!ip.IsInterfaceLocalMulticast() {
-			return true
+		// Check if FQDN contains an IP address pattern (e.g., ip-10-176-61-51)
+		// Extract and check if it's a private IP
+		if strings.Contains(lowerFqdn, "ip-") {
+			// Try to extract IP from patterns like "ip-10-176-61-51"
+			ipStr := extractIPFromFQDN(lowerFqdn)
+			if ipStr != "" && !isPublicIP(ipStr) {
+				continue
+			}
 		}
+
+		publicFqdns = append(publicFqdns, fqdn)
 	}
 
-	return false
+	return publicFqdns
+}
+
+// extractIPFromFQDN attempts to extract an IP address from FQDNs like "ip-10-176-61-51.ec2.internal"
+// Returns empty string if no valid IP pattern is found
+func extractIPFromFQDN(fqdn string) string {
+	// Look for patterns like "ip-10-176-61-51"
+	parts := strings.Split(fqdn, ".")
+	for _, part := range parts {
+		if strings.HasPrefix(part, "ip-") {
+			// Remove "ip-" prefix and replace remaining dashes with dots
+			ipPart := strings.TrimPrefix(part, "ip-")
+			// Replace dashes with dots to get potential IP address
+			ipCandidate := strings.ReplaceAll(ipPart, "-", ".")
+			// Validate it's a real IP by parsing it
+			if net.ParseIP(ipCandidate) != nil {
+				return ipCandidate
+			}
+		}
+	}
+	return ""
 }
 
 // matchesTagFilter checks if asset has any of the specified tags
@@ -370,6 +401,7 @@ func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpda
 // Uses originalResult for raw data to preserve unfiltered state
 func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExportConfig, filteredResult *apiassetfern.ApiVmAsssetExportReport, originalResult *apiassetfern.ApiVmAsssetExportReport) *assetfern.AssetDetails {
 	log := svc1log.FromContext(ctx)
+	log.Info("Transform config", svc1log.SafeParam("publicIPAddressesOnly", config.GetPublicIpAddressesOnly()))
 	assetDetails := &assetfern.AssetDetails{
 		ExportUuid: *originalResult.ExportUuid,
 	}
@@ -389,13 +421,31 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
 						// Create one Asset for each IP address
 						for _, ipAddress := range tenableAsset.Network.Ipv4S {
+							// If publicIPAddressesOnly is enabled, skip private IPs during transformation
+							if config.GetPublicIpAddressesOnly() {
+								isPublic := isPublicIP(ipAddress)
+								log.Info("Checking IP",
+									svc1log.SafeParam("ip", ipAddress),
+									svc1log.SafeParam("isPublic", isPublic),
+									svc1log.SafeParam("publicIPsOnlyEnabled", true))
+								if !isPublic {
+									log.Info("Skipping private IP", svc1log.SafeParam("ip", ipAddress))
+									continue
+								}
+							}
+
 							asset := &assetfern.Asset{
 								Ipaddress: ipAddress,
 							}
 
 							// Add FQDNs if available
 							if tenableAsset.Network.Fqdns != nil {
-								asset.Fqdns = tenableAsset.Network.Fqdns
+								// If publicIPAddressesOnly is enabled, filter out internal/private FQDNs
+								if config.GetPublicIpAddressesOnly() {
+									asset.Fqdns = filterPublicFqdns(tenableAsset.Network.Fqdns)
+								} else {
+									asset.Fqdns = tenableAsset.Network.Fqdns
+								}
 							}
 
 							// Add operating systems if available
