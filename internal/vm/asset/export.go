@@ -174,6 +174,23 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 	return true
 }
 
+// isPublicIP checks if a single IP address string is public
+func isPublicIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+
+	// An IP is public if it's NOT any of these (covers RFC 3330 special-use addresses)
+	return !ip.IsPrivate() &&
+		!ip.IsLoopback() &&
+		!ip.IsLinkLocalUnicast() &&
+		!ip.IsLinkLocalMulticast() &&
+		!ip.IsMulticast() &&
+		!ip.IsUnspecified() &&
+		!ip.IsInterfaceLocalMulticast()
+}
+
 // matchesPublicIPAddress checks if asset has any public IP addresses
 func matchesPublicIPAddress(asset *apiassetfern.TenableAsset) bool {
 	// Check if asset has any IPv4 addresses
@@ -181,21 +198,9 @@ func matchesPublicIPAddress(asset *apiassetfern.TenableAsset) bool {
 		return false
 	}
 
-	// Check if any IP address is public (using Go's built-in net package methods)
+	// Check if any IP address is public
 	for _, ipStr := range asset.Network.Ipv4S {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			continue
-		}
-
-		// An IP is public if it's NOT any of these (covers RFC 3330 special-use addresses)
-		if !ip.IsPrivate() &&
-			!ip.IsLoopback() &&
-			!ip.IsLinkLocalUnicast() &&
-			!ip.IsLinkLocalMulticast() &&
-			!ip.IsMulticast() &&
-			!ip.IsUnspecified() &&
-			!ip.IsInterfaceLocalMulticast() {
+		if isPublicIP(ipStr) {
 			return true
 		}
 	}
@@ -389,6 +394,11 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
 						// Create one Asset for each IP address
 						for _, ipAddress := range tenableAsset.Network.Ipv4S {
+							// If publicIPAddressesOnly is enabled, skip private IPs during transformation
+							if config.GetPublicIpAddressesOnly() && !isPublicIP(ipAddress) {
+								continue
+							}
+
 							asset := &assetfern.Asset{
 								Ipaddress: ipAddress,
 							}
