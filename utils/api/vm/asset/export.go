@@ -290,8 +290,19 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 	log := svc1log.FromContext(ctx)
 	var warnings []string
 
+	// Use values from config with fallback to defaults
+	maxWaitTime := config.GetMaxWaitTime()
+	sleepTime := config.GetSleepTime()
+
 	// Calculate the maximum number of attempts based on the maximum wait time and sleep time
-	maxAttempts := config.GetMaxWaitTime() / config.GetSleepTime()
+	if maxWaitTime <= 0 {
+		maxWaitTime = 600 // 10 minutes default
+	}
+	if sleepTime <= 0 {
+		sleepTime = 5 // 5 seconds default
+	}
+
+	maxAttempts := maxWaitTime / sleepTime
 
 	// Wait for the export to complete
 	for attempt := 0; attempt < maxAttempts; attempt++ {

@@ -245,6 +245,7 @@ func waitForWasFindingsExportCompletion(ctx context.Context, secrets *methodtena
 	maxWaitTime := config.GetMaxWaitTime()
 	sleepTime := config.GetSleepTime()
 
+	// Default values if not set
 	if maxWaitTime <= 0 {
 		maxWaitTime = 600 // 10 minutes default
 	}
