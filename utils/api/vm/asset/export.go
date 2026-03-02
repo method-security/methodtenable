@@ -342,10 +342,10 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 			return nil, warnings, fmt.Errorf("export failed with status: %s", status.Status)
 		case "PROCESSING":
 			log.Info("Export in progress", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("chunks_finished", len(status.ChunksFinished)), svc1log.SafeParam("chunks_available", len(status.ChunksAvailable)))
-			time.Sleep(time.Duration(config.GetSleepTime()) * time.Second)
+			time.Sleep(time.Duration(sleepTime) * time.Second)
 		default:
 			log.Info("Export status", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("status", status.Status))
-			time.Sleep(time.Duration(config.GetSleepTime()) * time.Second)
+			time.Sleep(time.Duration(sleepTime) * time.Second)
 		}
 	}
 
