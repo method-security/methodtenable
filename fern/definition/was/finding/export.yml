@@ -43,6 +43,7 @@ types:
       httpMethod: optional<WasHttpMethod>
       fqdn: optional<string>
       ipv4: optional<string>
+      ipv6: optional<string>
   WasFindingInfo:
     properties:
       finding: WasFinding
