@@ -13,7 +13,9 @@ import (
 	assetfern "github.com/Method-Security/methodtenable/generated/go/vm/asset"
 
 	// Utils
+	apiutils "github.com/Method-Security/methodtenable/utils/api"
 	utils "github.com/Method-Security/methodtenable/utils/api/vm/asset"
+
 	// External
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
@@ -93,7 +95,12 @@ func applyClientSideFilters(ctx context.Context, result *apiassetfern.ApiVmAssse
 			continue
 		}
 
-		filteredAssets := filterAssets(chunk.Assets, config)
+		filteredAssets, parseFailures := filterAssets(chunk.Assets, config)
+		if parseFailures > 0 {
+			log.Warn("Some assets dropped due to unparseable timestamps during client-side filtering",
+				svc1log.SafeParam("chunk_index", i),
+				svc1log.SafeParam("dropped_count", parseFailures))
+		}
 		filteredResult.Chunks[i].Assets = filteredAssets
 	}
 
@@ -112,60 +119,68 @@ func applyClientSideFilters(ctx context.Context, result *apiassetfern.ApiVmAssse
 }
 
 // filterAssets applies all client-side filters to a slice of assets
-func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) []*apiassetfern.TenableAsset {
+// Returns the filtered list and count of items dropped due to unparseable timestamps
+func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) ([]*apiassetfern.TenableAsset, int) {
 	var filtered []*apiassetfern.TenableAsset
+	parseFailures := 0
 
 	for _, asset := range assets {
-		if matchesAllFilters(asset, config) {
+		matched, parseFailed := matchesAllFilters(asset, config)
+		if parseFailed {
+			parseFailures++
+		}
+		if matched {
 			filtered = append(filtered, asset)
 		}
 	}
 
-	return filtered
+	return filtered, parseFailures
 }
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
 // tags, ipv4, hostname, operating_system, betweenUpdatedAt
 // Note: publicIPAddressesOnly is handled during transformation (per-IP filtering)
-func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) bool {
+// Returns (matches, parseFailure) where parseFailure indicates a timestamp couldn't be parsed
+func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) (bool, bool) {
 
 	// Tag filter (not supported by API)
 	if config.GetTags() != nil && len(config.GetTags()) > 0 {
 		if !matchesTagFilter(asset, config.GetTags()) {
-			return false
+			return false, false
 		}
 	}
 
 	// IPv4 filter (not supported by API)
 	if config.GetIpv4S() != nil && len(config.GetIpv4S()) > 0 {
 		if !matchesIPv4Filter(asset, config.GetIpv4S()) {
-			return false
+			return false, false
 		}
 	}
 
 	// Hostname filter (not supported by API)
 	if config.GetHostnames() != nil && len(config.GetHostnames()) > 0 {
 		if !matchesHostnameFilter(asset, config.GetHostnames()) {
-			return false
+			return false, false
 		}
 	}
 
 	// Operating System filter (not supported by API)
 	if config.GetOperatingSystems() != nil && len(config.GetOperatingSystems()) > 0 {
 		if !matchesOperatingSystemFilter(asset, config.GetOperatingSystems()) {
-			return false
+			return false, false
 		}
 	}
 
 	// Between Updated At filter (client-side date range filter)
 	if config.GetBetweenUpdatedAt() != nil && *config.GetBetweenUpdatedAt() != "" {
-		if !matchesBetweenUpdatedAtFilter(asset, *config.GetBetweenUpdatedAt()) {
-			return false
+		matched, parseFailed := matchesBetweenUpdatedAtFilter(asset, *config.GetBetweenUpdatedAt())
+		if !matched {
+			return false, parseFailed
 		}
 	}
 
-	return true
+	return true, false
 }
 
 // isPublicIP checks if a single IP address string is public
@@ -346,10 +361,11 @@ func matchesOperatingSystemFilter(asset *apiassetfern.TenableAsset, operatingSys
 }
 
 // matchesBetweenUpdatedAtFilter checks if asset's updated_at timestamp falls within the specified date range
-func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpdatedAt string) bool {
+// Returns (matches, parseFailure) where parseFailure indicates the asset's timestamp couldn't be parsed
+func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpdatedAt string) (bool, bool) {
 	// Check if asset has timestamps
 	if asset.Timestamps == nil || asset.Timestamps.UpdatedAt == nil {
-		return false
+		return false, true
 	}
 
 	// Parse the date range: 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z
@@ -369,7 +385,7 @@ func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpda
 	}
 
 	if lastDashIdx == -1 {
-		return false
+		return false, false
 	}
 
 	startDateStr := betweenUpdatedAt[:lastDashIdx]
@@ -377,23 +393,24 @@ func matchesBetweenUpdatedAtFilter(asset *apiassetfern.TenableAsset, betweenUpda
 
 	startDate, err := time.Parse(time.RFC3339, startDateStr)
 	if err != nil {
-		return false
+		return false, false
 	}
 
 	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
-		return false
+		return false, false
 	}
 
-	// Parse the asset's updated_at timestamp
-	assetUpdatedAt, err := time.Parse(time.RFC3339, *asset.Timestamps.UpdatedAt)
+	// Parse the asset's updated_at timestamp with flexible parsing
+	assetUpdatedAt, err := apiutils.ParseFlexibleTimestamp(*asset.Timestamps.UpdatedAt)
 	if err != nil {
-		return false
+		return false, true
 	}
 
 	// Check if the asset's updated_at falls within the range (inclusive)
-	return (assetUpdatedAt.Equal(startDate) || assetUpdatedAt.After(startDate)) &&
+	inRange := (assetUpdatedAt.Equal(startDate) || assetUpdatedAt.After(startDate)) &&
 		(assetUpdatedAt.Equal(endDate) || assetUpdatedAt.Before(endDate))
+	return inRange, false
 }
 
 // transformTenableAssets transforms the filtered Tenable API response into our Asset structure
@@ -413,53 +430,61 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 
 	// Transform the filtered Tenable assets into our Asset structure
 	var transformedAssets []*assetfern.Asset
+	noIpv4Count := 0
+	noNetworkCount := 0
 	if filteredResult.Chunks != nil {
 		for _, chunk := range filteredResult.Chunks {
 			if chunk.Assets != nil {
 				for _, tenableAsset := range chunk.Assets {
-					// Only process assets that have IP addresses
-					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
-						// Create one Asset for each IP address
-						for _, ipAddress := range tenableAsset.Network.Ipv4S {
-							// If publicIPAddressesOnly is enabled, skip private IPs during transformation
-							if config.GetPublicIpAddressesOnly() {
-								isPublic := isPublicIP(ipAddress)
-								log.Info("Checking IP",
-									svc1log.SafeParam("ip", ipAddress),
-									svc1log.SafeParam("isPublic", isPublic),
-									svc1log.SafeParam("publicIPsOnlyEnabled", true))
-								if !isPublic {
-									log.Info("Skipping private IP", svc1log.SafeParam("ip", ipAddress))
-									continue
-								}
+					// Track assets without network info or without IPv4
+					if tenableAsset.Network == nil {
+						noNetworkCount++
+						continue
+					}
+					if tenableAsset.Network.Ipv4S == nil {
+						noIpv4Count++
+						continue
+					}
+					// Create one Asset for each IP address
+					for _, ipAddress := range tenableAsset.Network.Ipv4S {
+						// If publicIPAddressesOnly is enabled, skip private IPs during transformation
+						if config.GetPublicIpAddressesOnly() {
+							isPublic := isPublicIP(ipAddress)
+							log.Info("Checking IP",
+								svc1log.SafeParam("ip", ipAddress),
+								svc1log.SafeParam("isPublic", isPublic),
+								svc1log.SafeParam("publicIPsOnlyEnabled", true))
+							if !isPublic {
+								log.Info("Skipping private IP", svc1log.SafeParam("ip", ipAddress))
+								continue
 							}
-
-							asset := &assetfern.Asset{
-								Ipaddress: ipAddress,
-							}
-
-							// Add FQDNs if available
-							if tenableAsset.Network.Fqdns != nil {
-								// If publicIPAddressesOnly is enabled, filter out internal/private FQDNs
-								if config.GetPublicIpAddressesOnly() {
-									asset.Fqdns = filterPublicFqdns(tenableAsset.Network.Fqdns)
-								} else {
-									asset.Fqdns = tenableAsset.Network.Fqdns
-								}
-							}
-
-							// Add operating systems if available
-							if tenableAsset.OperatingSystems != nil {
-								asset.OperatingSystems = tenableAsset.OperatingSystems
-							}
-
-							// Add installed software if available
-							if tenableAsset.InstalledSoftware != nil {
-								asset.InstalledSoftware = tenableAsset.InstalledSoftware
-							}
-
-							transformedAssets = append(transformedAssets, asset)
 						}
+
+						asset := &assetfern.Asset{
+							Ipaddress: ipAddress,
+						}
+
+						// Add FQDNs if available
+						if tenableAsset.Network.Fqdns != nil {
+							// If publicIPAddressesOnly is enabled, filter out internal/private FQDNs
+							if config.GetPublicIpAddressesOnly() {
+								asset.Fqdns = filterPublicFqdns(tenableAsset.Network.Fqdns)
+							} else {
+								asset.Fqdns = tenableAsset.Network.Fqdns
+							}
+						}
+
+						// Add operating systems if available
+						if tenableAsset.OperatingSystems != nil {
+							asset.OperatingSystems = tenableAsset.OperatingSystems
+						}
+
+						// Add installed software if available
+						if tenableAsset.InstalledSoftware != nil {
+							asset.InstalledSoftware = tenableAsset.InstalledSoftware
+						}
+
+						transformedAssets = append(transformedAssets, asset)
 					}
 				}
 			}
@@ -470,10 +495,21 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 		Assets: transformedAssets,
 	}
 
+	if noIpv4Count > 0 {
+		log.Warn("Some assets were skipped because they have no IPv4 addresses",
+			svc1log.SafeParam("no_ipv4_assets_skipped", noIpv4Count))
+	}
+	if noNetworkCount > 0 {
+		log.Warn("Some assets were skipped because they have no network information",
+			svc1log.SafeParam("no_network_assets_skipped", noNetworkCount))
+	}
+
 	log.Info("Transformed Tenable assets",
 		svc1log.SafeParam("tenable_assets_filtered", getTotalTenableAssets(filteredResult)),
 		svc1log.SafeParam("tenable_assets_original", getTotalTenableAssets(originalResult)),
-		svc1log.SafeParam("output_assets_created", len(transformedAssets)))
+		svc1log.SafeParam("output_assets_created", len(transformedAssets)),
+		svc1log.SafeParam("no_ipv4_skipped", noIpv4Count),
+		svc1log.SafeParam("no_network_skipped", noNetworkCount))
 
 	return assetDetails
 }

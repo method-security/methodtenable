@@ -82,9 +82,12 @@ func (a *MethodTenable) InitRootCommand() {
 			// Set the API keys from the environment variables
 			assetKey := os.Getenv("TENABLE_ACCESS_KEY")
 			assetSecret := os.Getenv("TENABLE_SECRET_KEY")
-			a.SecretConfig = methodtenablefern.SecretConfig{
-				AccessKey: &assetKey,
-				SecretKey: &assetSecret,
+			a.SecretConfig = methodtenablefern.SecretConfig{}
+			if assetKey != "" {
+				a.SecretConfig.AccessKey = &assetKey
+			}
+			if assetSecret != "" {
+				a.SecretConfig.SecretKey = &assetSecret
 			}
 
 			return nil
@@ -144,7 +147,8 @@ func validateOutputFormat(output string) (writer.Format, error) {
 
 // GetTenableSecretConfig returns the secret configuration if properly configured
 func (a *MethodTenable) GetTenableSecretConfig() (*methodtenablefern.SecretConfig, error) {
-	if a.SecretConfig.AccessKey == nil || a.SecretConfig.SecretKey == nil {
+	if a.SecretConfig.AccessKey == nil || *a.SecretConfig.AccessKey == "" ||
+		a.SecretConfig.SecretKey == nil || *a.SecretConfig.SecretKey == "" {
 		return nil, errors.New("access key or secret key not configured")
 	}
 	return &a.SecretConfig, nil

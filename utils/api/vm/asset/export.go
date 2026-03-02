@@ -48,7 +48,10 @@ func APIVmAssetV2Export(ctx context.Context, secrets *methodtenablefern.SecretCo
 
 	if config.GetMaxWaitTime() > 0 {
 		log.Info("Waiting for export completion", svc1log.SafeParam("export_uuid", exportUUID))
-		assets, err := waitForExportCompletion(ctx, secrets, exportUUID, config)
+		assets, chunkWarnings, err := waitForExportCompletion(ctx, secrets, exportUUID, config)
+		if len(chunkWarnings) > 0 {
+			errorStrings = append(errorStrings, chunkWarnings...)
+		}
 		if err != nil {
 			log.Warn("Export completion monitoring failed, but returning export UUID anyway",
 				svc1log.SafeParam("export_uuid", exportUUID),
@@ -283,8 +286,9 @@ func initiateExport(ctx context.Context, secrets *methodtenablefern.SecretConfig
 }
 
 // waitForExportCompletion waits for an asset export to complete
-func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, config *assetfern.VmAssetExportConfig) ([]*apiassetfern.TenableAsset, error) {
+func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.SecretConfig, exportUUID string, config *assetfern.VmAssetExportConfig) ([]*apiassetfern.TenableAsset, []string, error) {
 	log := svc1log.FromContext(ctx)
+	var warnings []string
 
 	// Calculate the maximum number of attempts based on the maximum wait time and sleep time
 	maxAttempts := config.GetMaxWaitTime() / config.GetSleepTime()
@@ -294,7 +298,7 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 		// Check the export status
 		status, err := checkExportStatus(ctx, secrets, exportUUID, config)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check export status: %w", err)
+			return nil, warnings, fmt.Errorf("failed to check export status: %w", err)
 		}
 
 		switch status.Status {
@@ -309,13 +313,22 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 				chunksAvailable = []int{}
 			}
 
+			// Report failed/cancelled chunks as warnings
+			if len(status.ChunksFailed) > 0 {
+				warnings = append(warnings, fmt.Sprintf("asset export has %d failed chunks - exported data may be incomplete", len(status.ChunksFailed)))
+			}
+			if len(status.ChunksCancelled) > 0 {
+				warnings = append(warnings, fmt.Sprintf("asset export has %d cancelled chunks - exported data may be incomplete", len(status.ChunksCancelled)))
+			}
+
 			log.Info("Export completed successfully", svc1log.SafeParam("export_uuid", exportUUID),
 				svc1log.SafeParam("chunks_finished", chunksFinished),
 				svc1log.SafeParam("chunks_available", chunksAvailable))
-			return downloadAllChunks(ctx, secrets, exportUUID, status, config)
+			assets, err := downloadAllChunks(ctx, secrets, exportUUID, status, config)
+			return assets, warnings, err
 		case "ERROR", "CANCELLED":
 			log.Error("Export failed", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("status", status.Status))
-			return nil, fmt.Errorf("export failed with status: %s", status.Status)
+			return nil, warnings, fmt.Errorf("export failed with status: %s", status.Status)
 		case "PROCESSING":
 			log.Info("Export in progress", svc1log.SafeParam("export_uuid", exportUUID), svc1log.SafeParam("chunks_finished", len(status.ChunksFinished)), svc1log.SafeParam("chunks_available", len(status.ChunksAvailable)))
 			time.Sleep(time.Duration(config.GetSleepTime()) * time.Second)
@@ -326,7 +339,7 @@ func waitForExportCompletion(ctx context.Context, secrets *methodtenablefern.Sec
 	}
 
 	log.Error("export did not complete within timeout period", svc1log.SafeParam("export_uuid", exportUUID))
-	return nil, fmt.Errorf("export did not complete within timeout period")
+	return nil, warnings, fmt.Errorf("export did not complete within timeout period")
 }
 
 // checkExportStatus checks the status of an asset export
@@ -373,6 +386,18 @@ func downloadAllChunks(ctx context.Context, secrets *methodtenablefern.SecretCon
 	log := svc1log.FromContext(ctx)
 	var allAssets []*apiassetfern.TenableAsset
 
+	// Warn about failed or cancelled chunks that represent lost data
+	if len(status.ChunksFailed) > 0 {
+		log.Error("Some asset export chunks FAILED - data may be incomplete",
+			svc1log.SafeParam("export_uuid", exportUUID),
+			svc1log.SafeParam("chunks_failed", status.ChunksFailed))
+	}
+	if len(status.ChunksCancelled) > 0 {
+		log.Error("Some asset export chunks were CANCELLED - data may be incomplete",
+			svc1log.SafeParam("export_uuid", exportUUID),
+			svc1log.SafeParam("chunks_cancelled", status.ChunksCancelled))
+	}
+
 	// Try chunks_finished first
 	chunkIDs := status.ChunksFinished
 	if len(chunkIDs) == 0 {
@@ -394,7 +419,11 @@ func downloadAllChunks(ctx context.Context, secrets *methodtenablefern.SecretCon
 		allAssets = append(allAssets, chunkData...)
 	}
 
-	log.Info("Successfully downloaded all chunks", svc1log.SafeParam("total_assets", len(allAssets)), svc1log.SafeParam("chunks", len(chunkIDs)))
+	log.Info("Successfully downloaded all chunks",
+		svc1log.SafeParam("total_assets", len(allAssets)),
+		svc1log.SafeParam("chunks_downloaded", len(chunkIDs)),
+		svc1log.SafeParam("chunks_failed", len(status.ChunksFailed)),
+		svc1log.SafeParam("chunks_cancelled", len(status.ChunksCancelled)))
 	return allAssets, nil
 }
 
