@@ -434,10 +434,19 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 		for _, chunk := range filteredResult.Chunks {
 			if chunk.Assets != nil {
 				for _, tenableAsset := range chunk.Assets {
-					// Only process assets that have IP addresses
-					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
-						// Create one Asset for each IP address
-						for _, ipAddress := range tenableAsset.Network.Ipv4S {
+					if tenableAsset.Network == nil {
+						continue
+					}
+
+					// Prefer IPv4; fall back to IPv6 if no IPv4s exist
+					ipsToProcess := tenableAsset.Network.Ipv4S
+					if len(ipsToProcess) == 0 {
+						ipsToProcess = tenableAsset.Network.Ipv6S
+					}
+
+					// Only process assets that have at least one IP address (v4 or v6)
+					if len(ipsToProcess) > 0 {
+						for _, ipAddress := range ipsToProcess {
 							// If publicIPAddressesOnly is enabled, skip private IPs during transformation
 							if config.GetPublicIpAddressesOnly() {
 								isPublic := isPublicIP(ipAddress)

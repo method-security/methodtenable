@@ -73,6 +73,7 @@ types:
       fqdns: optional<list<string>>
       hostnames: optional<list<string>>
       ipv4s: optional<list<string>>
+      ipv6s: optional<list<string>>
       network_id: optional<string>
       network_interfaces: optional<list<NetworkInterface>>
       network_name: optional<string>
