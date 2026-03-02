@@ -144,12 +144,3 @@ func validateOutputFormat(output string) (writer.Format, error) {
 	}
 	return writer.NewFormat(format), nil
 }
-
-// GetTenableSecretConfig returns the secret configuration if properly configured
-func (a *MethodTenable) GetTenableSecretConfig() (*methodtenablefern.SecretConfig, error) {
-	if a.SecretConfig.AccessKey == nil || *a.SecretConfig.AccessKey == "" ||
-		a.SecretConfig.SecretKey == nil || *a.SecretConfig.SecretKey == "" {
-		return nil, errors.New("access key or secret key not configured")
-	}
-	return &a.SecretConfig, nil
-}

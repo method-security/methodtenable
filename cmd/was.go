@@ -43,11 +43,7 @@ Data is returned in chunks and written locally as JSON.`,
 			ctx := cmd.Context()
 
 			// Set the secret config
-			secretConfig, err := a.GetTenableSecretConfig()
-			if err != nil {
-				a.OutputSignal.AddError(err)
-				return
-			}
+			secretConfig := &a.SecretConfig
 			accessKey, err := cmd.Flags().GetString("access-key")
 			if err != nil {
 				a.OutputSignal.AddError(err)

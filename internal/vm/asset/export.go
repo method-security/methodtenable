@@ -435,7 +435,6 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 			if chunk.Assets != nil {
 				for _, tenableAsset := range chunk.Assets {
 					// Only process assets that have IP addresses
-					// Only process assets that have IP addresses
 					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
 						// Create one Asset for each IP address
 						for _, ipAddress := range tenableAsset.Network.Ipv4S {
