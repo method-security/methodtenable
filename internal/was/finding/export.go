@@ -231,17 +231,18 @@ func transformToSimplifiedFindings(ctx context.Context, apiResult *apiwasfern.Ap
 
 				// Create the asset sub-structure
 				var asset *wasfern.WasAsset
-				if apiFinding.Asset != nil && (apiFinding.Asset.Fqdn != nil || apiFinding.Asset.Ipv4 != nil) {
-					// Extract HTTP method from output field
-					httpMethod := extractHTTPMethod(apiFinding.Output)
+			if apiFinding.Asset != nil && (apiFinding.Asset.Fqdn != nil || apiFinding.Asset.Ipv4 != nil || apiFinding.Asset.Ipv6 != nil) {
+				// Extract HTTP method from output field
+				httpMethod := extractHTTPMethod(apiFinding.Output)
 
-					asset = &wasfern.WasAsset{
-						Url:        *apiFinding.Url,
-						HttpMethod: httpMethod,
-						Fqdn:       apiFinding.Asset.Fqdn,
-						Ipv4:       apiFinding.Asset.Ipv4,
-					}
+				asset = &wasfern.WasAsset{
+					Url:        *apiFinding.Url,
+					HttpMethod: httpMethod,
+					Fqdn:       apiFinding.Asset.Fqdn,
+					Ipv4:       apiFinding.Asset.Ipv4,
+					Ipv6:       apiFinding.Asset.Ipv6,
 				}
+			}
 
 				// Create the complete finding info with sub-structures
 				findingInfo := &wasfern.WasFindingInfo{

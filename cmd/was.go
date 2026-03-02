@@ -43,11 +43,7 @@ Data is returned in chunks and written locally as JSON.`,
 			ctx := cmd.Context()
 
 			// Set the secret config
-			secretConfig, err := a.GetTenableSecretConfig()
-			if err != nil {
-				a.OutputSignal.AddError(err)
-				return
-			}
+			secretConfig := &a.SecretConfig
 			accessKey, err := cmd.Flags().GetString("access-key")
 			if err != nil {
 				a.OutputSignal.AddError(err)
@@ -213,15 +209,15 @@ Data is returned in chunks and written locally as JSON.`,
 
 	// Add flags for findings export
 	findingsExportCmd.Flags().Int("timeout", 30, "Timeout for API requests in seconds")
-	findingsExportCmd.Flags().Int("max-wait-time", 0, "Maximum time to wait for export completion (seconds)")
+	findingsExportCmd.Flags().Int("max-wait-time", 600, "Maximum time to wait for export completion (seconds, default 600s / 10 minutes)")
 	findingsExportCmd.Flags().Int("sleep-time", 5, "Time to sleep between status checks (seconds)")
 	findingsExportCmd.Flags().Int("num-assets", 50, "Number of assets used to chunk the findings (50-5000)")
 	findingsExportCmd.Flags().String("since", "", "Server-side filter: start date for data range (e.g., 2025-11-25T16:05:22Z)")
 	findingsExportCmd.Flags().String("first-found", "", "Server-side filter: findings first found at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	findingsExportCmd.Flags().String("last-fixed", "", "Server-side filter: findings fixed at or after this time (e.g., 2025-11-25T16:05:22Z)")
 	findingsExportCmd.Flags().String("last-found", "", "Server-side filter: findings last found at or after this time (e.g., 2025-11-25T16:05:22Z)")
-	findingsExportCmd.Flags().String("between-since", "", "Client-side filter: date range for last_found in RFC3339-RFC3339 format (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)") // Client Side filter
 	findingsExportCmd.Flags().StringSlice("severity", []string{}, "Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO) (comma-separated supported)")
+	findingsExportCmd.Flags().String("between-since", "", "Client-side filter: date range for last_found in RFC3339-RFC3339 format (e.g., 2025-11-25T16:05:22Z-2025-12-01T16:05:22Z)") // Client Side filter
 	findingsExportCmd.Flags().Bool("hide-raw-output", false, "Do not include raw output in the report")
 
 	// Add the findings export command to the findings command
