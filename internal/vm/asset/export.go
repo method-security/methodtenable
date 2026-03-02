@@ -430,61 +430,54 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 
 	// Transform the filtered Tenable assets into our Asset structure
 	var transformedAssets []*assetfern.Asset
-	noIpv4Count := 0
-	noNetworkCount := 0
 	if filteredResult.Chunks != nil {
 		for _, chunk := range filteredResult.Chunks {
 			if chunk.Assets != nil {
 				for _, tenableAsset := range chunk.Assets {
-					// Track assets without network info or without IPv4
-					if tenableAsset.Network == nil {
-						noNetworkCount++
-						continue
-					}
-					if tenableAsset.Network.Ipv4S == nil {
-						noIpv4Count++
-						continue
-					}
-					// Create one Asset for each IP address
-					for _, ipAddress := range tenableAsset.Network.Ipv4S {
-						// If publicIPAddressesOnly is enabled, skip private IPs during transformation
-						if config.GetPublicIpAddressesOnly() {
-							isPublic := isPublicIP(ipAddress)
-							log.Info("Checking IP",
-								svc1log.SafeParam("ip", ipAddress),
-								svc1log.SafeParam("isPublic", isPublic),
-								svc1log.SafeParam("publicIPsOnlyEnabled", true))
-							if !isPublic {
-								log.Info("Skipping private IP", svc1log.SafeParam("ip", ipAddress))
-								continue
-							}
-						}
-
-						asset := &assetfern.Asset{
-							Ipaddress: ipAddress,
-						}
-
-						// Add FQDNs if available
-						if tenableAsset.Network.Fqdns != nil {
-							// If publicIPAddressesOnly is enabled, filter out internal/private FQDNs
+					// Only process assets that have IP addresses
+					// Only process assets that have IP addresses
+					if tenableAsset.Network != nil && tenableAsset.Network.Ipv4S != nil && len(tenableAsset.Network.Ipv4S) > 0 {
+						// Create one Asset for each IP address
+						for _, ipAddress := range tenableAsset.Network.Ipv4S {
+							// If publicIPAddressesOnly is enabled, skip private IPs during transformation
 							if config.GetPublicIpAddressesOnly() {
-								asset.Fqdns = filterPublicFqdns(tenableAsset.Network.Fqdns)
-							} else {
-								asset.Fqdns = tenableAsset.Network.Fqdns
+								isPublic := isPublicIP(ipAddress)
+								log.Info("Checking IP",
+									svc1log.SafeParam("ip", ipAddress),
+									svc1log.SafeParam("isPublic", isPublic),
+									svc1log.SafeParam("publicIPsOnlyEnabled", true))
+								if !isPublic {
+									log.Info("Skipping private IP", svc1log.SafeParam("ip", ipAddress))
+									continue
+								}
 							}
-						}
 
-						// Add operating systems if available
-						if tenableAsset.OperatingSystems != nil {
-							asset.OperatingSystems = tenableAsset.OperatingSystems
-						}
+							asset := &assetfern.Asset{
+								Ipaddress: ipAddress,
+							}
 
-						// Add installed software if available
-						if tenableAsset.InstalledSoftware != nil {
-							asset.InstalledSoftware = tenableAsset.InstalledSoftware
-						}
+							// Add FQDNs if available
+							if tenableAsset.Network.Fqdns != nil {
+								// If publicIPAddressesOnly is enabled, filter out internal/private FQDNs
+								if config.GetPublicIpAddressesOnly() {
+									asset.Fqdns = filterPublicFqdns(tenableAsset.Network.Fqdns)
+								} else {
+									asset.Fqdns = tenableAsset.Network.Fqdns
+								}
+							}
 
-						transformedAssets = append(transformedAssets, asset)
+							// Add operating systems if available
+							if tenableAsset.OperatingSystems != nil {
+								asset.OperatingSystems = tenableAsset.OperatingSystems
+							}
+
+							// Add installed software if available
+							if tenableAsset.InstalledSoftware != nil {
+								asset.InstalledSoftware = tenableAsset.InstalledSoftware
+							}
+
+							transformedAssets = append(transformedAssets, asset)
+						}
 					}
 				}
 			}
@@ -495,21 +488,10 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 		Assets: transformedAssets,
 	}
 
-	if noIpv4Count > 0 {
-		log.Warn("Some assets were skipped because they have no IPv4 addresses",
-			svc1log.SafeParam("no_ipv4_assets_skipped", noIpv4Count))
-	}
-	if noNetworkCount > 0 {
-		log.Warn("Some assets were skipped because they have no network information",
-			svc1log.SafeParam("no_network_assets_skipped", noNetworkCount))
-	}
-
 	log.Info("Transformed Tenable assets",
 		svc1log.SafeParam("tenable_assets_filtered", getTotalTenableAssets(filteredResult)),
 		svc1log.SafeParam("tenable_assets_original", getTotalTenableAssets(originalResult)),
-		svc1log.SafeParam("output_assets_created", len(transformedAssets)),
-		svc1log.SafeParam("no_ipv4_skipped", noIpv4Count),
-		svc1log.SafeParam("no_network_skipped", noNetworkCount))
+		svc1log.SafeParam("output_assets_created", len(transformedAssets)))
 
 	return assetDetails
 }
