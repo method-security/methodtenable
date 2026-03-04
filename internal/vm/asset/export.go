@@ -139,7 +139,7 @@ func filterAssets(assets []*apiassetfern.TenableAsset, config *assetfern.VmAsset
 
 // matchesAllFilters checks if an asset matches all the specified CLIENT-SIDE-ONLY filters
 // Note: Most filters are handled at API level. Only these are still client-side:
-// tags, ipv4, hostname, operating_system, betweenUpdatedAt
+// tags, ips, hostname, operating_system, betweenUpdatedAt
 // Note: publicIPAddressesOnly is handled during transformation (per-IP filtering)
 // Returns (matches, parseFailure) where parseFailure indicates a timestamp couldn't be parsed
 func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAssetExportConfig) (bool, bool) {
@@ -151,9 +151,9 @@ func matchesAllFilters(asset *apiassetfern.TenableAsset, config *assetfern.VmAss
 		}
 	}
 
-	// IPv4 filter (not supported by API)
-	if config.GetIpv4S() != nil && len(config.GetIpv4S()) > 0 {
-		if !matchesIPv4Filter(asset, config.GetIpv4S()) {
+	// IP filter (not supported by API) - checks both IPv4 and IPv6
+	if config.GetIps() != nil && len(config.GetIps()) > 0 {
+		if !matchesIPFilter(asset, config.GetIps()) {
 			return false, false
 		}
 	}
@@ -273,14 +273,18 @@ func matchesTagFilter(asset *apiassetfern.TenableAsset, tags []string) bool {
 	return false
 }
 
-// matchesIPv4Filter checks if asset has any of the specified IPv4 addresses or CIDR ranges
-func matchesIPv4Filter(asset *apiassetfern.TenableAsset, ipv4Filters []string) bool {
-	if asset.Network == nil || asset.Network.Ipv4S == nil {
+// matchesIPFilter checks if asset has any of the specified IP addresses or CIDR ranges (IPv4 and IPv6)
+func matchesIPFilter(asset *apiassetfern.TenableAsset, ipFilters []string) bool {
+	if asset.Network == nil {
 		return false
 	}
 
-	for _, assetIP := range asset.Network.Ipv4S {
-		for _, filterIP := range ipv4Filters {
+	// Check both IPv4 and IPv6 addresses
+	allIPs := make([]string, 0, len(asset.Network.Ipv4S)+len(asset.Network.Ipv6S))
+	allIPs = append(allIPs, asset.Network.Ipv4S...)
+	allIPs = append(allIPs, asset.Network.Ipv6S...)
+	for _, assetIP := range allIPs {
+		for _, filterIP := range ipFilters {
 			if matchesIPOrCIDR(assetIP, filterIP) {
 				return true
 			}
@@ -292,7 +296,7 @@ func matchesIPv4Filter(asset *apiassetfern.TenableAsset, ipv4Filters []string) b
 // matchesIPOrCIDR checks if an IP matches an IP or CIDR range
 func matchesIPOrCIDR(assetIP, filterIP string) bool {
 	// Exact match
-	if assetIP == filterIP {
+	if net.ParseIP(assetIP).Equal(net.ParseIP(filterIP)) {
 		return true
 	}
 
@@ -438,11 +442,8 @@ func transformTenableAssets(ctx context.Context, config *assetfern.VmAssetExport
 						continue
 					}
 
-					// Prefer IPv4; fall back to IPv6 if no IPv4s exist
-					ipsToProcess := tenableAsset.Network.Ipv4S
-					if len(ipsToProcess) == 0 {
-						ipsToProcess = tenableAsset.Network.Ipv6S
-					}
+					// Process both IPv4 and IPv6 addresses
+					ipsToProcess := append(tenableAsset.Network.Ipv4S, tenableAsset.Network.Ipv6S...)
 
 					// Only process assets that have at least one IP address (v4 or v6)
 					if len(ipsToProcess) > 0 {
