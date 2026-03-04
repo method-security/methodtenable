@@ -41,7 +41,7 @@ func (a *MethodTenable) InitVMCommand() {
 		Long: `Export assets from Tenable Vulnerability Management using the Asset
 Export API v2. Supports filtering by time-based fields such as created_at,
 updated_at, last_seen, deleted_at, and terminated_at. Also supports filtering
-by tags, sources, IPv4 addresses, hostnames, and operating systems. Data is
+by tags, sources, IP addresses (IPv4 and IPv6), hostnames, and operating systems. Data is
 returned in chunks and written locally as JSON.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Get the context
@@ -211,7 +211,7 @@ returned in chunks and written locally as JSON.`,
 				typesEnum = append(typesEnum, assetType)
 			}
 
-			ipv4s, err := cmd.Flags().GetStringSlice("ipv4s")
+			ips, err := cmd.Flags().GetStringSlice("ips")
 			if err != nil {
 				a.OutputSignal.AddError(err)
 				return
@@ -276,7 +276,7 @@ returned in chunks and written locally as JSON.`,
 				sourcesEnum = append(sourcesEnum, sourceType)
 			}
 
-			config := getAssetExportConfig(chunkSize, createdAtStr, updatedAtStr, lastAssessedStr, deletedAtStr, terminatedAtStr, betweenUpdatedAtStr, tags, sourcesEnum, typesEnum, ipv4s, hostnames, operatingSystems, publicIPAddressesOnly, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
+			config := getAssetExportConfig(chunkSize, createdAtStr, updatedAtStr, lastAssessedStr, deletedAtStr, terminatedAtStr, betweenUpdatedAtStr, tags, sourcesEnum, typesEnum, ips, hostnames, operatingSystems, publicIPAddressesOnly, hasAgent, servicenowSysid, maxWaitTime, timeout, sleepTime, hideRawOutput)
 
 			// Generate Report
 			report := assets.ExportAssets(ctx, *secretConfig, *config)
@@ -295,7 +295,7 @@ returned in chunks and written locally as JSON.`,
 	assetExportCmd.Flags().StringSlice("tags", []string{}, "Client-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)")                   // Client Side filter
 	assetExportCmd.Flags().StringSlice("sources", []string{}, "Client-side filter: Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)")
 	assetExportCmd.Flags().StringSlice("types", []string{"HOST", "WEBAPP"}, "Server-side filter: Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported)")
-	assetExportCmd.Flags().StringSlice("ipv4s", []string{}, "Client-side filter: Filter by IPv4 address or CIDR (repeatable, comma-separated supported)")                        // Client Side filter
+	assetExportCmd.Flags().StringSlice("ips", []string{}, "Client-side filter: Filter by IP address or CIDR, supports both IPv4 and IPv6 (repeatable, comma-separated supported)") // Client Side filter
 	assetExportCmd.Flags().StringSlice("hostnames", []string{}, "Client-side filter: Filter by hostname (repeatable, comma-separated supported)")                                // Client Side filter
 	assetExportCmd.Flags().StringSlice("operating-systems", []string{}, "Client-side filter: Filter by operating system value (repeatable, comma-separated supported)")          // Client Side filter
 	assetExportCmd.Flags().Bool("public-ip-addresses-only", false, "Client-side filter: Include only assets with public IP addresses (excludes RFC 3330 special-use addresses)") // Client Side filter
@@ -565,13 +565,13 @@ locally as JSON.`,
 }
 
 // getAssetExportConfig returns a new VmAssetExportConfig struct with the given parameters
-func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, lastAssessed string, deletedAt string, terminatedAt string, betweenUpdatedAt string, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ipv4s []string, hostnames []string, operatingSystems []string, publicIPAddressesOnly bool, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
+func getAssetExportConfig(chunkSize int, createdAt string, updatedAt string, lastAssessed string, deletedAt string, terminatedAt string, betweenUpdatedAt string, tags []string, sources []assetfern.SourceType, types []assetfern.AssetType, ips []string, hostnames []string, operatingSystems []string, publicIPAddressesOnly bool, hasAgent bool, servicenowSysid bool, maxWaitTime int, timeout int, sleepTime int, hideRawOutput bool) *assetfern.VmAssetExportConfig {
 	config := &assetfern.VmAssetExportConfig{
 		ChunkSize:             chunkSize,
 		Tags:                  tags,
 		Sources:               sources,
 		Types:                 types,
-		Ipv4S:                 ipv4s,
+		Ips:                   ips,
 		Hostnames:             hostnames,
 		OperatingSystems:      operatingSystems,
 		PublicIpAddressesOnly: publicIPAddressesOnly,
