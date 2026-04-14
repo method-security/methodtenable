@@ -296,9 +296,9 @@ returned in chunks and written locally as JSON.`,
 	assetExportCmd.Flags().StringSlice("sources", []string{}, "Client-side filter: Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)")
 	assetExportCmd.Flags().StringSlice("types", []string{"HOST", "WEBAPP"}, "Server-side filter: Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported)")
 	assetExportCmd.Flags().StringSlice("ips", []string{}, "Client-side filter: Filter by IP address or CIDR, supports both IPv4 and IPv6 (repeatable, comma-separated supported)") // Client Side filter
-	assetExportCmd.Flags().StringSlice("hostnames", []string{}, "Client-side filter: Filter by hostname (repeatable, comma-separated supported)")                                // Client Side filter
-	assetExportCmd.Flags().StringSlice("operating-systems", []string{}, "Client-side filter: Filter by operating system value (repeatable, comma-separated supported)")          // Client Side filter
-	assetExportCmd.Flags().Bool("public-ip-addresses-only", false, "Client-side filter: Include only assets with public IP addresses (excludes RFC 3330 special-use addresses)") // Client Side filter
+	assetExportCmd.Flags().StringSlice("hostnames", []string{}, "Client-side filter: Filter by hostname (repeatable, comma-separated supported)")                                  // Client Side filter
+	assetExportCmd.Flags().StringSlice("operating-systems", []string{}, "Client-side filter: Filter by operating system value (repeatable, comma-separated supported)")            // Client Side filter
+	assetExportCmd.Flags().Bool("public-ip-addresses-only", false, "Client-side filter: Include only assets with public IP addresses (excludes RFC 3330 special-use addresses)")   // Client Side filter
 	assetExportCmd.Flags().Bool("has-agent", false, "Server-side filter: Include only assets scanned by a Nessus Agent. This overrides the sources filter and sets it to NESSUS_AGENT.")
 	assetExportCmd.Flags().Bool("servicenow-sysid", false, "Server-side filter: Include assets with a ServiceNow sysid")
 	assetExportCmd.Flags().Int("max-wait-time", 600, "Maximum wait time for export to complete in seconds (default 600s / 10 minutes)")
