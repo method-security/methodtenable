@@ -43,7 +43,7 @@ Flags:
       --has-agent                    Server-side filter: Include only assets scanned by a Nessus Agent. This overrides the sources filter and sets it to NESSUS_AGENT.
       --hide-raw-output              Do not include raw output in the report
       --hostnames stringSlice        Client-side filter: Filter by hostname (repeatable, comma-separated supported)
-      --ipv4s stringSlice            Client-side filter: Filter by IPv4 address or CIDR (repeatable, comma-separated supported)
+      --ips stringSlice               Client-side filter: Filter by IP address or CIDR, supports both IPv4 and IPv6 (repeatable, comma-separated supported)
       --last-assessed string         ISO datetime: only assets last_assessed (last seen) at or after this time (e.g., 2025-11-25T16:05:22Z)
       --max-wait-time int            Maximum wait time for export to complete in seconds (default 600)
       --operating-systems stringSlice Client-side filter: Filter by operating system value (repeatable, comma-separated supported)
