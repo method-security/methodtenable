@@ -11,8 +11,11 @@ nav:
       - Overview: index.md
       - Installation: getting-started/installation.md
       - Basic Usage: getting-started/basic-usage.md
-  - Commands:
-      - VM Commands: docs/vm.md
+  - Docs:
+      - Overview: docs/index.md
+      - Commands:
+          - VM Commands: docs/vm.md
+          - WAS Commands: docs/was.md
   - Contributing:
       - How to contribute: community/community.md
       - Development:

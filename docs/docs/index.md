@@ -99,7 +99,7 @@ methodtenable vm asset export [flags]
 - `--between-updated-at` - Date range filter for updated_at (RFC3339-RFC3339 format)
 - `--tags` - Filter by asset tags (Category:Value format)
 - `--sources` - Filter by asset source (NESSUS_SCAN, AWS, WAS, etc.)
-- `--ipv4s` - Filter by IPv4 address or CIDR range
+- `--ips` - Filter by IP address or CIDR range (supports IPv4 and IPv6)
 - `--hostnames` - Filter by hostname
 - `--operating-systems` - Filter by operating system
 - `--public-ip-addresses-only` - Include only assets with public IPs
