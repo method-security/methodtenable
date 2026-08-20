@@ -115,4 +115,4 @@ methodtenable exports data in a clean, structured format:
 
 methodtenable is a Method Security open source project. Learn more about Method's open source work by checking out our other projects [here](https://github.com/Method-Security) or our organization wide documentation [here](https://method-security.github.io).
 
-Have an idea for a tool to contribute? Open a discussion [here](https://github.com/Method-Security/Method-Security.github.io/discussions).
+Have an idea for a Tool to contribute? Open a Discussion [here](https://github.com/Method-Security/Method-Security.github.io/discussions).
