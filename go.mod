@@ -1,6 +1,6 @@
 module github.com/Method-Security/methodtenable
 
-go 1.26.7
+go 1.26.6
 
 require (
 	github.com/Method-Security/pkg v0.1.1
