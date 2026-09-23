@@ -42,19 +42,19 @@ Flags:
       --deleted-at string            ISO datetime: only assets deleted at or after this time (e.g., 2025-11-25T16:05:22Z)
       --has-agent                    Server-side filter: Include only assets scanned by a Nessus Agent. This overrides the sources filter and sets it to NESSUS_AGENT.
       --hide-raw-output              Do not include raw output in the report
-      --hostnames stringSlice        Client-side filter: Filter by hostname (repeatable, comma-separated supported)
-      --ips stringSlice               Client-side filter: Filter by IP address or CIDR, supports both IPv4 and IPv6 (repeatable, comma-separated supported)
+      --hostnames strings            Client-side filter: Filter by hostname (repeatable, comma-separated supported)
+      --ips strings                  Client-side filter: Filter by IP address or CIDR, supports both IPv4 and IPv6 (repeatable, comma-separated supported)
       --last-assessed string         ISO datetime: only assets last_assessed (last seen) at or after this time (e.g., 2025-11-25T16:05:22Z)
       --max-wait-time int            Maximum wait time for export to complete in seconds (default 600)
-      --operating-systems stringSlice Client-side filter: Filter by operating system value (repeatable, comma-separated supported)
+      --operating-systems strings    Client-side filter: Filter by operating system value (repeatable, comma-separated supported)
       --public-ip-addresses-only     Client-side filter: Include only assets with public IP addresses (excludes RFC 3330 special-use addresses)
       --servicenow-sysid             Server-side filter: Include assets with a ServiceNow sysid
       --sleep-time int               Sleep time between Tenable API calls in seconds (default 5)
-      --sources stringSlice          Client-side filter: Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)
-      --tags stringSlice             Client-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)
+      --sources strings              Client-side filter: Filter by asset source (e.g., NESSUS_SCAN, AWS, WAS) (comma-separated supported)
+      --tags strings                 Client-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)
       --terminated-at string         ISO datetime: only assets terminated at or after this time (e.g., 2025-11-25T16:05:22Z)
       --timeout int                  Timeout for Tenable API requests in seconds (default 30)
-      --types stringSlice            Server-side filter: Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported) (default [HOST,WEBAPP])
+      --types strings                Server-side filter: Filter by asset type (e.g., HOST, WEBAPP) (repeatable, comma-separated supported) (default [HOST,WEBAPP])
       --updated-at string            ISO datetime: only assets updated at or after this time (e.g., 2025-11-25T16:05:22Z)
 
 Global Flags:
@@ -97,11 +97,11 @@ Flags:
       --last-found string        Server-side filter: only vulnerabilities with last_found at or after this time (e.g., 2025-11-25T16:05:22Z)
       --max-wait-time int        Maximum wait time for export to complete in seconds (default 600)
       --num-assets int           Specifies the number of assets used to chunk the vulnerabilities (recommended max 5000, min of 50) (default 500)
-      --severity stringSlice     Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL) (comma-separated supported)
+      --severity strings         Server-side filter: Severity filter (INFO, LOW, MEDIUM, HIGH, CRITICAL) (comma-separated supported)
       --since string             Server-side filter: include vulns last_found or last_fixed at or after this time (e.g., 2025-11-25T16:05:22Z)
       --sleep-time int           Sleep time between Tenable API calls in seconds (default 5)
-      --state stringSlice        Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED) (comma-separated supported)
-      --tag stringSlice          Server-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)
+      --state strings            Server-side filter: Vulnerability state filter (OPEN, REOPENED, FIXED) (comma-separated supported)
+      --tag strings              Server-side filter: Filter by asset tag in format Category:Value (repeatable, comma-separated supported)
       --timeout int              Timeout for Tenable API requests in seconds (default 30)
 
 Global Flags:
