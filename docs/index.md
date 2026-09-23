@@ -33,7 +33,7 @@ methodtenable vm vulnerability export --num-assets 100 --since 2025-01-01T00:00:
 Export asset information:
 
 ```bash
-methodtenable vm asset export --chunk-size 1000 --has-agent --is-licensed
+methodtenable vm asset export --chunk-size 1000 --has-agent
 ```
 
 ## Key Features

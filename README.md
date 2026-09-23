@@ -54,8 +54,8 @@ methodtenable vm vulnerability export \
 ```
 
 ```bash
-# Export asset information
-methodtenable vm asset export --chunk-size 1000 --has-agent --is-licensed
+# Export assets scanned by a Nessus Agent
+methodtenable vm asset export --chunk-size 1000 --has-agent
 ```
 
 ```bash
@@ -105,7 +105,6 @@ methodtenable supports multiple ways to provide Tenable API credentials:
 
 - Environment variables: `TENABLE_ACCESS_KEY` and `TENABLE_SECRET_KEY`
 - Command line flags: `--access-key` and `--secret-key`
-- Configuration files (see documentation for details)
 
 ### Output Formats
 

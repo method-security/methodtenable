@@ -40,7 +40,7 @@ Flags:
       --last-found string        Server-side filter: findings last found at or after this time (e.g., 2025-11-25T16:05:22Z)
       --max-wait-time int        Maximum time to wait for export completion in seconds (default 600)
       --num-assets int           Number of assets used to chunk the findings (50-5000) (default 50)
-      --severity stringSlice     Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO) (comma-separated supported)
+      --severity strings         Server-side filter: severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO) (comma-separated supported)
       --since string             Server-side filter: start date for data range (e.g., 2025-11-25T16:05:22Z)
       --sleep-time int           Time to sleep between status checks in seconds (default 5)
       --timeout int              Timeout for API requests in seconds (default 30)
